@@ -46,9 +46,20 @@
     <a href="{{ url_for('caille.taches') }}" class="{{ 'active' if request.endpoint=='caille.taches' }}">
       <i class="bi bi-clipboard-check"></i> Cahier de charges
     </a>
+    <a href="{{ url_for('caille.statistiques') }}" class="{{ 'active' if request.endpoint=='caille.statistiques' }}">
+      <i class="bi bi-graph-up"></i> Statistiques
+    </a>
+    <a href="{{ url_for('caille.rapports') }}" class="{{ 'active' if request.endpoint=='caille.rapports' }}">
+      <i class="bi bi-file-earmark-pdf"></i> Rapports PDF
+    </a>
     <a href="{{ url_for('caille.archive') }}" class="{{ 'active' if request.endpoint=='caille.archive' }}">
       <i class="bi bi-archive"></i> Archive
     </a>
+    {% if current_user.is_authenticated %}
+    <div class="sidebar-group">Compte</div>
+    <div class="px-3 small" style="color:#c9b896;">{{ current_user.username }}</div>
+    <a href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i> Déconnexion</a>
+    {% endif %}
   </nav>
 
   <main class="caille-content">

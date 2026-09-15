@@ -1,0 +1,177 @@
+"""
+reports.py — Génération des rapports PDF du module caille (via reportlab,
+une bibliothèque 100% Python, sans dépendance système — compatible avec un
+environnement serverless comme Vercel).
+"""
+import io
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.units import cm
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+
+PRIMARY = colors.HexColor("#6e4622")
+ACCENT_BG = colors.HexColor("#f0e8db")
+
+
+def _doc(buffer, title):
+    doc = SimpleDocTemplate(buffer, pagesize=A4, title=title,
+                             topMargin=1.5 * cm, bottomMargin=1.5 * cm,
+                             leftMargin=1.5 * cm, rightMargin=1.5 * cm)
+    styles = getSampleStyleSheet()
+    elements = [Paragraph(title, styles["Title"]), Spacer(1, 0.4 * cm)]
+    return doc, elements, styles
+
+
+def _table_style(nb_cols, header=True, total_row=True):
+    style = [
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+    ]
+    if header:
+        style += [
+            ("BACKGROUND", (0, 0), (-1, 0), PRIMARY),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ]
+    if total_row:
+        style += [
+            ("BACKGROUND", (0, -1), (-1, -1), ACCENT_BG),
+            ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+        ]
+    return TableStyle(style)
+
+
+def rapport_ponte(entrees, date_debut, date_fin, totaux):
+    buffer = io.BytesIO()
+    doc, elements, styles = _doc(buffer, "Rapport de ponte &amp; ventes d'œufs")
+    elements.append(Paragraph(
+        f"Période : {date_debut.strftime('%d/%m/%Y')} au {date_fin.strftime('%d/%m/%Y')}",
+        styles["Normal"]))
+    elements.append(Spacer(1, 0.4 * cm))
+
+    data = [["Date", "Lot", "Pondus", "Vendus", "Prix/u (F)", "Montant (F)", "Cassés", "Autoconso."]]
+    for e in entrees:
+        data.append([
+            e.date_jour.strftime("%d/%m/%Y"), e.lot.nom, e.oeufs_pondus, e.oeufs_vendus,
+            e.prix_unitaire_vente, e.montant_vente, e.oeufs_casses, e.oeufs_autoconsommes,
+        ])
+    data.append(["", "TOTAL", totaux["pondus"], totaux["vendus"], "", totaux["revenu"], totaux["casses"], ""])
+
+    if len(data) == 2:
+        elements.append(Paragraph("Aucune donnée sur cette période.", styles["Normal"]))
+    else:
+        t = Table(data, repeatRows=1)
+        t.setStyle(_table_style(len(data[0])))
+        elements.append(t)
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+
+def rapport_mortalite(entrees, date_debut, date_fin, totaux):
+    buffer = io.BytesIO()
+    doc, elements, styles = _doc(buffer, "Rapport de mortalité")
+    elements.append(Paragraph(
+        f"Période : {date_debut.strftime('%d/%m/%Y')} au {date_fin.strftime('%d/%m/%Y')}",
+        styles["Normal"]))
+    elements.append(Spacer(1, 0.4 * cm))
+
+    data = [["Date", "Lot", "Cailles mortes", "Cailletons morts", "Cause", "Notes"]]
+    for e in entrees:
+        data.append([
+            e.date_jour.strftime("%d/%m/%Y"), e.lot.nom, e.cailles_mortes,
+            e.cailletons_morts, e.cause or "", e.notes or "",
+        ])
+    data.append(["", "TOTAL", totaux["cailles"], totaux["cailletons"], "", ""])
+
+    if len(data) == 2:
+        elements.append(Paragraph("Aucune donnée sur cette période.", styles["Normal"]))
+    else:
+        t = Table(data, repeatRows=1)
+        t.setStyle(_table_style(len(data[0])))
+        elements.append(t)
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+
+def rapport_achats(achats, date_debut, date_fin, totaux):
+    buffer = io.BytesIO()
+    doc, elements, styles = _doc(buffer, "Rapport des achats de provende")
+    elements.append(Paragraph(
+        f"Période : {date_debut.strftime('%d/%m/%Y')} au {date_fin.strftime('%d/%m/%Y')}",
+        styles["Normal"]))
+    elements.append(Spacer(1, 0.4 * cm))
+
+    data = [["Date", "Type", "Fournisseur", "Quantité (kg)", "Prix total (F)", "Prix/kg (F)"]]
+    for a in achats:
+        data.append([
+            a.date_achat.strftime("%d/%m/%Y"), a.type_provende.nom,
+            a.fournisseur.nom if a.fournisseur else "—",
+            a.quantite_kg, a.prix_total, a.prix_unitaire_kg,
+        ])
+    data.append(["", "TOTAL", "", totaux["kg"], totaux["cout"], ""])
+
+    if len(data) == 2:
+        elements.append(Paragraph("Aucun achat sur cette période.", styles["Normal"]))
+    else:
+        t = Table(data, repeatRows=1)
+        t.setStyle(_table_style(len(data[0])))
+        elements.append(t)
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+
+def fiche_lot(lot, pontes, mortalites, naissances):
+    buffer = io.BytesIO()
+    doc, elements, styles = _doc(buffer, f"Fiche du lot : {lot.nom}")
+
+    infos = [
+        ["Type", lot.type_lot],
+        ["Mise en place", lot.date_mise_en_place.strftime("%d/%m/%Y")],
+        ["Effectif initial", str(lot.effectif_initial)],
+        ["Effectif actuel", str(lot.effectif_actuel)],
+        ["Statut", lot.statut],
+        ["Œufs pondus (total)", str(lot.total_oeufs_pondus)],
+        ["Revenu œufs (total)", f"{lot.total_revenu_oeufs} F"],
+        ["Mortalité cailles (total)", str(lot.total_mortalite_cailles)],
+        ["Mortalité cailletons (total)", str(lot.total_mortalite_cailletons)],
+    ]
+    t_info = Table(infos, colWidths=[6 * cm, 8 * cm])
+    t_info.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
+        ("BACKGROUND", (0, 0), (0, -1), ACCENT_BG),
+    ]))
+    elements.append(t_info)
+    elements.append(Spacer(1, 0.6 * cm))
+
+    def sous_tableau(titre, entetes, lignes):
+        elements.append(Paragraph(titre, styles["Heading3"]))
+        if not lignes:
+            elements.append(Paragraph("Aucune donnée.", styles["Normal"]))
+        else:
+            data = [entetes] + lignes
+            t = Table(data, repeatRows=1)
+            t.setStyle(_table_style(len(entetes), total_row=False))
+            elements.append(t)
+        elements.append(Spacer(1, 0.5 * cm))
+
+    sous_tableau("Ponte & ventes", ["Date", "Pondus", "Vendus", "Montant (F)"],
+                 [[p.date_jour.strftime("%d/%m/%Y"), p.oeufs_pondus, p.oeufs_vendus, p.montant_vente] for p in pontes])
+    sous_tableau("Mortalité", ["Date", "Cailles", "Cailletons", "Cause"],
+                 [[m.date_jour.strftime("%d/%m/%Y"), m.cailles_mortes, m.cailletons_morts, m.cause or ""] for m in mortalites])
+    sous_tableau("Naissances", ["Date", "Nombre", "Origine"],
+                 [[n.date_jour.strftime("%d/%m/%Y"), n.nombre_cailletons, n.origine] for n in naissances])
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer

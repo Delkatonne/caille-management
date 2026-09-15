@@ -1,35 +1,38 @@
 """
-app.py — Application Flask autonome pour TESTER le module "caille" en local.
-
-Ceci n'est PAS destiné à remplacer votre application HITNA principale.
-C'est un point d'entrée minimal qui vous permet de lancer et visiter le
-module tout seul avant de l'intégrer. Voir README.md pour l'intégration
-réelle dans votre projet HITNA existant.
+app.py — Application Flask du module "caille" pour HITNA.
 
 Lancement rapide (SQLite local, aucune config nécessaire) :
     pip install -r requirements.txt
     python app.py
 Puis ouvrez http://127.0.0.1:5000/caille/
+
+Identifiant par défaut au premier lancement : admin / changeme123
+(à changer via les variables d'environnement ADMIN_USERNAME / ADMIN_PASSWORD
+avant le tout premier démarrage, ou en modifiant le mot de passe ensuite).
 """
 import os
 from flask import Flask, redirect, url_for
 
-from extensions import db
+from extensions import db, login_manager
 from routes.caille import caille_bp
+from routes.auth import auth_bp
+
 
 def create_app():
     app = Flask(__name__)
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
     # Par défaut : SQLite local pour tester rapidement.
-    # Pour tester avec votre vraie base PostgreSQL, définissez la variable
-    # d'environnement DATABASE_URL avant de lancer l'app.
+    # En production (Vercel), définissez DATABASE_URL (ex: votre base Neon).
     default_db = "sqlite:///" + os.path.join(os.path.dirname(__file__), "caille_test.db")
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", default_db)
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     db.init_app(app)
+    login_manager.init_app(app)
+
     app.register_blueprint(caille_bp)
+    app.register_blueprint(auth_bp)
 
     @app.route("/")
     def index():
@@ -38,13 +41,19 @@ def create_app():
     with app.app_context():
         db.create_all()
         _seed_types_provende_si_vide()
+        _seed_admin_si_vide()
 
     return app
 
 
+@login_manager.user_loader
+def load_user(user_id):
+    from models import User
+    return User.query.get(int(user_id))
+
+
 def _seed_types_provende_si_vide():
-    """Pré-remplit les 3 types de provende classiques si la table est vide,
-    pour que le tableau de bord ne soit pas vide au premier lancement."""
+    """Pré-remplit les 3 types de provende classiques si la table est vide."""
     from models import TypeProvende
     if TypeProvende.query.count() == 0:
         defaults = [
@@ -53,6 +62,22 @@ def _seed_types_provende_si_vide():
             TypeProvende(nom="Ponte", description="Dès l'entrée en ponte, avec calcium (~20% protéines)", seuil_alerte_kg=20),
         ]
         db.session.add_all(defaults)
+        db.session.commit()
+
+
+def _seed_admin_si_vide():
+    """Crée un premier compte administrateur si aucun utilisateur n'existe.
+
+    Identifiants configurables via les variables d'environnement
+    ADMIN_USERNAME / ADMIN_PASSWORD. À défaut : admin / changeme123
+    (à changer immédiatement après le premier déploiement)."""
+    from models import User
+    if User.query.count() == 0:
+        username = os.environ.get("ADMIN_USERNAME", "admin")
+        password = os.environ.get("ADMIN_PASSWORD", "changeme123")
+        user = User(username=username)
+        user.set_password(password)
+        db.session.add(user)
         db.session.commit()
 
 

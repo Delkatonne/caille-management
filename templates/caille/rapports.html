@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Rapports{% endblock %}
+{% block page_title %}Rapports PDF{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-egg"></i> Ponte &amp; ventes d'œufs</div>
+      <div class="card-body">
+        <form action="{{ url_for('caille.rapport_ponte_pdf') }}" method="get" target="_blank">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+            <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <button class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-exclamation-triangle"></i> Mortalité</div>
+      <div class="card-body">
+        <form action="{{ url_for('caille.rapport_mortalite_pdf') }}" method="get" target="_blank">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+            <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <button class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-cart-plus"></i> Achats de provende</div>
+      <div class="card-body">
+        <form action="{{ url_for('caille.rapport_achats_pdf') }}" method="get" target="_blank">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+            <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <button class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-grid-3x3-gap"></i> Fiche d'un lot</div>
+      <div class="card-body">
+        <label class="form-label small">Choisir un lot</label>
+        <select class="form-select form-select-sm mb-3" id="selectLotPdf">
+          {% for l in lots %}<option value="{{ l.id }}">{{ l.nom }}{{ ' (archivé)' if l.statut=='archive' }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-outline-primary btn-sm" onclick="ouvrirFicheLot()"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function ouvrirFicheLot() {
+  const id = document.getElementById('selectLotPdf').value;
+  if (id) window.open(`/caille/rapports/lot/${id}.pdf`, '_blank');
+}
+</script>
+{% endblock %}

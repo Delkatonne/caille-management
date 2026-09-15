@@ -14,14 +14,16 @@ protéger ce module derrière l'authentification existante.
 """
 from datetime import date, datetime, timedelta
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file
+from flask_login import login_required, current_user
 
-from extensions import db
+from extensions import db, login_manager
 from models import (
     Lot, SuiviPonte, SuiviMortalite, Naissance,
     TypeProvende, Fournisseur, AchatProvende, ConsommationProvende,
     Tache, stock_oeufs_actuel,
 )
+import reports
 
 caille_bp = Blueprint(
     "caille", __name__,
@@ -29,6 +31,17 @@ caille_bp = Blueprint(
     template_folder="../templates/caille",
     static_folder="../static/caille",
 )
+
+
+@caille_bp.before_request
+def _exiger_connexion():
+    """Protège toutes les routes du module derrière une connexion, sauf les
+    fichiers statiques (CSS) qui doivent rester accessibles depuis la page
+    de connexion elle-même."""
+    if request.endpoint == "caille.static":
+        return None
+    if not current_user.is_authenticated:
+        return login_manager.unauthorized()
 
 
 def _parse_date(value, default=None):
@@ -456,3 +469,127 @@ def changer_statut_tache(tache_id):
 def archive():
     lots_archives = Lot.query.filter_by(statut="archive").order_by(Lot.date_reforme.desc()).all()
     return render_template("archive.html", lots=lots_archives)
+
+
+# ---------------------------------------------------------------------------
+# STATISTIQUES (graphiques)
+# ---------------------------------------------------------------------------
+@caille_bp.route("/statistiques")
+def statistiques():
+    lots_actifs = Lot.query.filter(Lot.statut != "archive").order_by(Lot.nom).all()
+    date_debut = date.today() - timedelta(days=29)
+    date_fin = date.today()
+    return render_template("statistiques.html", lots=lots_actifs, date_debut=date_debut, date_fin=date_fin)
+
+
+@caille_bp.route("/api/stats/ponte")
+def api_stats_ponte():
+    date_debut = _parse_date(request.args.get("debut"), date.today() - timedelta(days=29))
+    date_fin = _parse_date(request.args.get("fin"), date.today())
+    lot_id = request.args.get("lot_id")
+
+    query = db.session.query(
+        SuiviPonte.date_jour,
+        db.func.sum(SuiviPonte.oeufs_pondus),
+        db.func.sum(SuiviPonte.oeufs_vendus),
+    ).filter(SuiviPonte.date_jour.between(date_debut, date_fin))
+    if lot_id:
+        query = query.filter(SuiviPonte.lot_id == _parse_int(lot_id))
+    rows = query.group_by(SuiviPonte.date_jour).order_by(SuiviPonte.date_jour).all()
+
+    return jsonify({
+        "labels": [r[0].strftime("%d/%m") for r in rows],
+        "pondus": [int(r[1] or 0) for r in rows],
+        "vendus": [int(r[2] or 0) for r in rows],
+    })
+
+
+@caille_bp.route("/api/stats/mortalite")
+def api_stats_mortalite():
+    date_debut = _parse_date(request.args.get("debut"), date.today() - timedelta(days=29))
+    date_fin = _parse_date(request.args.get("fin"), date.today())
+    lot_id = request.args.get("lot_id")
+
+    query = db.session.query(
+        SuiviMortalite.date_jour,
+        db.func.sum(SuiviMortalite.cailles_mortes),
+        db.func.sum(SuiviMortalite.cailletons_morts),
+    ).filter(SuiviMortalite.date_jour.between(date_debut, date_fin))
+    if lot_id:
+        query = query.filter(SuiviMortalite.lot_id == _parse_int(lot_id))
+    rows = query.group_by(SuiviMortalite.date_jour).order_by(SuiviMortalite.date_jour).all()
+
+    return jsonify({
+        "labels": [r[0].strftime("%d/%m") for r in rows],
+        "cailles": [int(r[1] or 0) for r in rows],
+        "cailletons": [int(r[2] or 0) for r in rows],
+    })
+
+
+# ---------------------------------------------------------------------------
+# RAPPORTS PDF
+# ---------------------------------------------------------------------------
+@caille_bp.route("/rapports")
+def rapports():
+    lots_tous = Lot.query.order_by(Lot.nom).all()
+    date_debut = date.today() - timedelta(days=29)
+    date_fin = date.today()
+    return render_template("rapports.html", lots=lots_tous, date_debut=date_debut, date_fin=date_fin)
+
+
+@caille_bp.route("/rapports/ponte.pdf")
+def rapport_ponte_pdf():
+    date_debut = _parse_date(request.args.get("debut"), date.today() - timedelta(days=29))
+    date_fin = _parse_date(request.args.get("fin"), date.today())
+    entrees = SuiviPonte.query.filter(SuiviPonte.date_jour.between(date_debut, date_fin)) \
+        .order_by(SuiviPonte.date_jour).all()
+    totaux = {
+        "pondus": sum(e.oeufs_pondus for e in entrees),
+        "vendus": sum(e.oeufs_vendus for e in entrees),
+        "casses": sum(e.oeufs_casses for e in entrees),
+        "revenu": round(sum(e.montant_vente for e in entrees), 2),
+    }
+    buf = reports.rapport_ponte(entrees, date_debut, date_fin, totaux)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True,
+                      download_name=f"rapport_ponte_{date_debut}_{date_fin}.pdf")
+
+
+@caille_bp.route("/rapports/mortalite.pdf")
+def rapport_mortalite_pdf():
+    date_debut = _parse_date(request.args.get("debut"), date.today() - timedelta(days=29))
+    date_fin = _parse_date(request.args.get("fin"), date.today())
+    entrees = SuiviMortalite.query.filter(SuiviMortalite.date_jour.between(date_debut, date_fin)) \
+        .order_by(SuiviMortalite.date_jour).all()
+    totaux = {
+        "cailles": sum(e.cailles_mortes for e in entrees),
+        "cailletons": sum(e.cailletons_morts for e in entrees),
+    }
+    buf = reports.rapport_mortalite(entrees, date_debut, date_fin, totaux)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True,
+                      download_name=f"rapport_mortalite_{date_debut}_{date_fin}.pdf")
+
+
+@caille_bp.route("/rapports/achats.pdf")
+def rapport_achats_pdf():
+    date_debut = _parse_date(request.args.get("debut"), date.today() - timedelta(days=29))
+    date_fin = _parse_date(request.args.get("fin"), date.today())
+    achats = AchatProvende.query.filter(AchatProvende.date_achat.between(date_debut, date_fin)) \
+        .order_by(AchatProvende.date_achat).all()
+    totaux = {
+        "kg": round(sum(a.quantite_kg for a in achats), 2),
+        "cout": round(sum(a.prix_total or 0 for a in achats), 2),
+    }
+    buf = reports.rapport_achats(achats, date_debut, date_fin, totaux)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True,
+                      download_name=f"rapport_achats_provende_{date_debut}_{date_fin}.pdf")
+
+
+@caille_bp.route("/rapports/lot/<int:lot_id>.pdf")
+def rapport_lot_pdf(lot_id):
+    lot = Lot.query.get_or_404(lot_id)
+    pontes = lot.pontes.order_by(SuiviPonte.date_jour).all()
+    mortalites = lot.mortalites.order_by(SuiviMortalite.date_jour).all()
+    naissances = lot.naissances.order_by(Naissance.date_jour).all()
+    buf = reports.fiche_lot(lot, pontes, mortalites, naissances)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True,
+                      download_name=f"fiche_{lot.nom}.pdf")

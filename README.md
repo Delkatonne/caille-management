@@ -15,7 +15,10 @@ python app.py
 
 Ouvrez http://127.0.0.1:5000/caille/ — une base SQLite locale (`caille_test.db`)
 est créée automatiquement, avec 3 types de provende pré-remplis (Démarrage,
-Croissance, Ponte) pour que le tableau de bord ne soit pas vide.
+Croissance, Ponte). Un compte admin est aussi créé automatiquement :
+**identifiant `admin` / mot de passe `changeme123`** (à changer via les
+variables d'environnement `ADMIN_USERNAME` / `ADMIN_PASSWORD` avant le tout
+premier démarrage — voir section 4).
 
 ## 2. Intégrer dans l'application HITNA existante
 
@@ -53,15 +56,35 @@ en conflit avec vos tables existantes (produits, ventes, employés...).
   nouvelles tables sans toucher aux tables existantes.
 
 ### e) Protéger l'accès (authentification)
-Si vos autres routes HITNA utilisent `@login_required` (Flask-Login), ajoutez
-ce même décorateur sur chaque fonction de `routes/caille.py`, et pensez à
-ajouter un lien vers `/caille/` dans le menu principal de HITNA.
+Ce module a désormais sa propre authentification (`routes/auth.py`, modèle
+`User` dans `models.py`, pages `/login` et `/logout`). Si HITNA a déjà son
+propre système de connexion (Flask-Login ou autre), deux options :
+- **Le plus simple** : garder l'auth du module telle quelle (elle est
+  indépendante et ne touche à rien d'autre).
+- **Pour fusionner** : retirez `routes/auth.py`, le modèle `User`, et le
+  `@caille_bp.before_request` dans `routes/caille.py` (qui vérifie
+  `current_user.is_authenticated`), puis protégez chaque route avec le
+  `@login_required` de votre système HITNA existant.
 
 ### f) Lien dans le menu HITNA
 Ajoutez un lien « Gestion caille » dans la navigation principale de HITNA
 pointant vers `{{ url_for('caille.dashboard') }}`.
 
-## 3. Fonctionnalités couvertes
+## 3. Variables d'environnement
+
+| Variable | Rôle | Défaut si absente |
+|---|---|---|
+| `DATABASE_URL` | Connexion PostgreSQL (Neon, Supabase...) | SQLite local (⚠️ ne persiste pas sur Vercel) |
+| `SECRET_KEY` | Clé de session Flask | valeur de dev non sécurisée — **à définir en prod** |
+| `ADMIN_USERNAME` | Identifiant du premier compte créé automatiquement | `admin` |
+| `ADMIN_PASSWORD` | Mot de passe du premier compte créé automatiquement | `changeme123` — **à changer** |
+
+Ces deux dernières variables ne servent qu'à la toute première création de
+compte (quand la table utilisateurs est vide). Pour ajouter d'autres
+comptes ou changer un mot de passe ensuite, il faut le faire directement en
+base ou ajouter une petite page de gestion des comptes (non incluse ici).
+
+## 4. Fonctionnalités couvertes
 
 | Besoin exprimé | Où le trouver |
 |---|---|
@@ -76,13 +99,14 @@ pointant vers `{{ url_for('caille.dashboard') }}`.
 | Suivi par lot / bâtiment | Lots de cailles (effectif, historique, détail) |
 | Revenu des ventes d'œufs | Calculé automatiquement (dashboard + page ponte + détail lot) |
 | Coût de la provende | Calculé automatiquement (page achats) |
+| Authentification | Page `/login`, session Flask-Login, toutes les pages du module protégées |
+| Graphique de ponte | Page Statistiques (courbe pondus/vendus + barres mortalité, filtrables par période et par lot) |
+| Export PDF | Page Rapports PDF (ponte, mortalité, achats de provende, fiche d'un lot) |
 
-## 4. Idées d'évolutions possibles (non incluses ici)
+## 5. Idées d'évolutions possibles (non incluses ici)
 
-- Export PDF/Excel des rapports (vous avez déjà des PDF dans HITNA — le module
-  peut réutiliser la même logique)
 - Notifications automatiques (email/SMS) quand un seuil de provende est atteint
-- Courbe de ponte / mortalité (graphique) par lot
 - Calcul automatique de l'indice de consommation (kg provende / œuf produit)
 - Rattachement des ventes d'œufs au système de vente général de HITNA si les
   œufs sont aussi vendus via le module boutique existant
+- Page de gestion des comptes (créer/désactiver des utilisateurs depuis l'interface)
