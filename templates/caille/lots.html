@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Lots de cailles{% endblock %}
+{% block page_title %}Lots de cailles{% endblock %}
+{% block page_actions %}
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAjoutLot">
+  <i class="bi bi-plus-lg"></i> Nouveau lot
+</button>
+{% endblock %}
+
+{% block content %}
+<ul class="nav nav-pills mb-3">
+  <li class="nav-item"><a class="nav-link {{ 'active' if filtre_statut=='actif' }}" href="{{ url_for('caille.lots', statut='actif') }}">Actifs</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if filtre_statut=='archive' }}" href="{{ url_for('caille.lots', statut='archive') }}">Archivés</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if filtre_statut=='tous' }}" href="{{ url_for('caille.lots', statut='tous') }}">Tous</a></li>
+</ul>
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>Nom</th><th>Type</th><th>Mise en place</th><th>Effectif initial</th>
+          <th>Effectif actuel</th><th>Statut</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for lot in lots %}
+        <tr>
+          <td><a href="{{ url_for('caille.detail_lot', lot_id=lot.id) }}">{{ lot.nom }}</a></td>
+          <td>{{ lot.type_lot }}</td>
+          <td>{{ lot.date_mise_en_place.strftime('%d/%m/%Y') }}</td>
+          <td>{{ lot.effectif_initial }}</td>
+          <td>{{ lot.effectif_actuel }}</td>
+          <td>
+            {% if lot.statut == 'actif' %}<span class="badge bg-success">Actif</span>
+            {% else %}<span class="badge bg-secondary">Archivé</span>{% endif %}
+          </td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalEdit{{ lot.id }}">
+              <i class="bi bi-pencil"></i>
+            </button>
+            {% if lot.statut == 'actif' %}
+            <form action="{{ url_for('caille.archiver_lot', lot_id=lot.id) }}" method="post" class="d-inline" onsubmit="return confirm('Archiver ce lot ?');">
+              <button class="btn btn-sm btn-outline-warning"><i class="bi bi-archive"></i></button>
+            </form>
+            {% else %}
+            <form action="{{ url_for('caille.reactiver_lot', lot_id=lot.id) }}" method="post" class="d-inline">
+              <button class="btn btn-sm btn-outline-success"><i class="bi bi-arrow-counterclockwise"></i></button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+
+        <!-- Modal édition -->
+        <div class="modal fade" id="modalEdit{{ lot.id }}" tabindex="-1">
+          <div class="modal-dialog">
+            <form class="modal-content" action="{{ url_for('caille.modifier_lot', lot_id=lot.id) }}" method="post">
+              <div class="modal-header"><h5 class="modal-title">Modifier le lot</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+              <div class="modal-body">
+                <div class="mb-2"><label class="form-label">Nom</label>
+                  <input class="form-control" name="nom" value="{{ lot.nom }}" required></div>
+                <div class="mb-2"><label class="form-label">Type</label>
+                  <select class="form-select" name="type_lot">
+                    <option value="ponte" {{ 'selected' if lot.type_lot=='ponte' }}>Ponte (production d'œufs)</option>
+                    <option value="chair" {{ 'selected' if lot.type_lot=='chair' }}>Chair (viande)</option>
+                    <option value="reproduction" {{ 'selected' if lot.type_lot=='reproduction' }}>Reproduction</option>
+                  </select></div>
+                <div class="mb-2"><label class="form-label">Date de mise en place</label>
+                  <input type="date" class="form-control" name="date_mise_en_place" value="{{ lot.date_mise_en_place }}"></div>
+                <div class="mb-2"><label class="form-label">Effectif initial</label>
+                  <input type="number" class="form-control" name="effectif_initial" value="{{ lot.effectif_initial }}"></div>
+                <div class="mb-2"><label class="form-label">Notes</label>
+                  <textarea class="form-control" name="notes" rows="2">{{ lot.notes or '' }}</textarea></div>
+              </div>
+              <div class="modal-footer"><button class="btn btn-primary">Enregistrer</button></div>
+            </form>
+          </div>
+        </div>
+      {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">Aucun lot pour ce filtre.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal ajout -->
+<div class="modal fade" id="modalAjoutLot" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" action="{{ url_for('caille.lots') }}" method="post">
+      <div class="modal-header"><h5 class="modal-title">Nouveau lot de cailles</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2"><label class="form-label">Nom du lot</label>
+          <input class="form-control" name="nom" placeholder="Ex: Lot A - Bâtiment 1" required></div>
+        <div class="mb-2"><label class="form-label">Type</label>
+          <select class="form-select" name="type_lot">
+            <option value="ponte">Ponte (production d'œufs)</option>
+            <option value="chair">Chair (viande)</option>
+            <option value="reproduction">Reproduction</option>
+          </select></div>
+        <div class="mb-2"><label class="form-label">Date de mise en place</label>
+          <input type="date" class="form-control" name="date_mise_en_place" value="{{ today if today else '' }}"></div>
+        <div class="mb-2"><label class="form-label">Effectif initial</label>
+          <input type="number" class="form-control" name="effectif_initial" min="0" required></div>
+        <div class="mb-2"><label class="form-label">Notes</label>
+          <textarea class="form-control" name="notes" rows="2"></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-primary">Créer le lot</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Cahier de charges{% endblock %}
+{% block page_title %}Cahier de charges — tâches &amp; protocoles{% endblock %}
+{% block page_actions %}
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTache"><i class="bi bi-plus-lg"></i> Nouvelle tâche</button>
+{% endblock %}
+
+{% block content %}
+<ul class="nav nav-pills mb-3">
+  <li class="nav-item"><a class="nav-link {{ 'active' if filtre_statut=='tous' }}" href="{{ url_for('caille.taches', statut='tous') }}">Toutes</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if filtre_statut=='a_faire' }}" href="{{ url_for('caille.taches', statut='a_faire') }}">À faire</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if filtre_statut=='en_cours' }}" href="{{ url_for('caille.taches', statut='en_cours') }}">En cours</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if filtre_statut=='fait' }}" href="{{ url_for('caille.taches', statut='fait') }}">Terminées</a></li>
+</ul>
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>Tâche</th><th>Catégorie</th><th>Lot</th><th>Prévue le</th><th>Récurrence</th><th>Statut</th><th></th></tr></thead>
+      <tbody>
+      {% for t in taches %}
+        <tr>
+          <td>
+            <strong>{{ t.titre }}</strong>
+            {% if t.description %}<div class="text-muted small">{{ t.description }}</div>{% endif %}
+          </td>
+          <td><span class="badge badge-categorie-{{ t.categorie }}">{{ t.categorie }}</span></td>
+          <td>{{ t.lot.nom if t.lot else '—' }}</td>
+          <td>{{ t.date_prevue.strftime('%d/%m/%Y') if t.date_prevue else '—' }}</td>
+          <td>{{ t.recurrence }}</td>
+          <td>
+            {% if t.statut == 'fait' %}<span class="badge bg-success">Fait</span>
+            {% elif t.statut == 'en_cours' %}<span class="badge bg-warning text-dark">En cours</span>
+            {% else %}<span class="badge bg-secondary">À faire</span>{% endif %}
+          </td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <form action="{{ url_for('caille.changer_statut_tache', tache_id=t.id) }}" method="post" class="d-inline">
+                <input type="hidden" name="statut" value="a_faire"><button class="btn btn-outline-secondary" title="À faire"><i class="bi bi-circle"></i></button>
+              </form>
+              <form action="{{ url_for('caille.changer_statut_tache', tache_id=t.id) }}" method="post" class="d-inline">
+                <input type="hidden" name="statut" value="en_cours"><button class="btn btn-outline-warning" title="En cours"><i class="bi bi-hourglass-split"></i></button>
+              </form>
+              <form action="{{ url_for('caille.changer_statut_tache', tache_id=t.id) }}" method="post" class="d-inline">
+                <input type="hidden" name="statut" value="fait"><button class="btn btn-outline-success" title="Fait"><i class="bi bi-check-lg"></i></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">Aucune tâche pour ce filtre.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="modalTache" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" action="{{ url_for('caille.taches') }}" method="post">
+      <div class="modal-header"><h5 class="modal-title">Nouvelle tâche / protocole</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2"><label class="form-label">Titre</label><input class="form-control" name="titre" placeholder="Ex: Vaccination lot A, Nettoyage cages..." required></div>
+        <div class="mb-2"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="2"></textarea></div>
+        <div class="row">
+          <div class="col-6 mb-2"><label class="form-label">Catégorie</label>
+            <select class="form-select" name="categorie">
+              <option value="sanitaire">Sanitaire</option>
+              <option value="entretien">Entretien</option>
+              <option value="alimentation">Alimentation</option>
+              <option value="reapprovisionnement">Réapprovisionnement</option>
+              <option value="vente">Vente</option>
+              <option value="general" selected>Général</option>
+            </select></div>
+          <div class="col-6 mb-2"><label class="form-label">Récurrence</label>
+            <select class="form-select" name="recurrence">
+              <option value="aucune">Aucune</option>
+              <option value="quotidien">Quotidienne</option>
+              <option value="hebdo">Hebdomadaire</option>
+              <option value="mensuel">Mensuelle</option>
+            </select></div>
+        </div>
+        <div class="mb-2"><label class="form-label">Lot concerné (optionnel)</label>
+          <select class="form-select" name="lot_id">
+            <option value="">—</option>
+            {% for l in lots %}<option value="{{ l.id }}">{{ l.nom }}</option>{% endfor %}
+          </select></div>
+        <div class="mb-2"><label class="form-label">Date prévue</label><input type="date" class="form-control" name="date_prevue"></div>
+        <div class="mb-2"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="2"></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-primary">Ajouter</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

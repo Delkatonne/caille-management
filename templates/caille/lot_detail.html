@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ lot.nom }}{% endblock %}
+{% block page_title %}Lot : {{ lot.nom }}{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('caille.lots') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Retour aux lots</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-value">{{ lot.effectif_actuel }}</div><div class="kpi-label">Effectif actuel</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-value">{{ lot.total_oeufs_pondus }}</div><div class="kpi-label">Œufs pondus (total)</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-value">{{ lot.total_revenu_oeufs }} F</div><div class="kpi-label">Revenu œufs (total)</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi-card {{ 'alerte' if (lot.total_mortalite_cailles + lot.total_mortalite_cailletons) > 0 }}">
+    <div class="kpi-value">{{ lot.total_mortalite_cailles }} / {{ lot.total_mortalite_cailletons }}</div>
+    <div class="kpi-label">Morts total (cailles / cailletons)</div></div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">Ponte — 30 derniers jours</div>
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Date</th><th>Pondus</th><th>Vendus</th></tr></thead>
+        <tbody>
+        {% for p in pontes %}<tr><td>{{ p.date_jour.strftime('%d/%m') }}</td><td>{{ p.oeufs_pondus }}</td><td>{{ p.oeufs_vendus }}</td></tr>
+        {% else %}<tr><td colspan="3" class="text-center text-muted py-3">Aucune donnée</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">Mortalité — 30 derniers jours</div>
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Date</th><th>Cailles</th><th>Cailletons</th></tr></thead>
+        <tbody>
+        {% for m in mortalites %}<tr><td>{{ m.date_jour.strftime('%d/%m') }}</td><td>{{ m.cailles_mortes }}</td><td>{{ m.cailletons_morts }}</td></tr>
+        {% else %}<tr><td colspan="3" class="text-center text-muted py-3">Aucune donnée</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">Naissances — 30 dernières</div>
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Date</th><th>Nombre</th><th>Origine</th></tr></thead>
+        <tbody>
+        {% for n in naissances %}<tr><td>{{ n.date_jour.strftime('%d/%m') }}</td><td>{{ n.nombre_cailletons }}</td><td>{{ n.origine }}</td></tr>
+        {% else %}<tr><td colspan="3" class="text-center text-muted py-3">Aucune donnée</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if lot.notes %}
+<div class="card mt-3"><div class="card-body"><strong>Notes :</strong> {{ lot.notes }}</div></div>
+{% endif %}
+{% endblock %}

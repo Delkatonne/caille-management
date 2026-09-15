@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Consommation de provende{% endblock %}
+{% block page_title %}Consommation journalière de provende{% endblock %}
+{% block page_actions %}
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalConso"><i class="bi bi-plus-lg"></i> Saisir</button>
+{% endblock %}
+
+{% block content %}
+<form class="row g-2 mb-3 align-items-end" method="get">
+  <div class="col-auto"><label class="form-label mb-0">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+  <div class="col-auto"><label class="form-label mb-0">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+  <div class="col-auto"><button class="btn btn-sm btn-outline-secondary">Filtrer</button></div>
+  <div class="col-auto ms-auto"><span class="badge bg-dark">Total période : {{ total_kg }} kg</span></div>
+</form>
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>Date</th><th>Lot</th><th>Type de provende</th><th>Quantité (kg)</th><th>Notes</th></tr></thead>
+      <tbody>
+      {% for c in consos %}
+        <tr>
+          <td>{{ c.date_jour.strftime('%d/%m/%Y') }}</td>
+          <td>{{ c.lot.nom if c.lot else 'Tous lots' }}</td>
+          <td>{{ c.type_provende.nom }}</td>
+          <td>{{ c.quantite_kg }}</td>
+          <td>{{ c.notes or '' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="text-center text-muted py-4">Aucune consommation enregistrée sur cette période.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="modalConso" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" action="{{ url_for('caille.consommation_provende') }}" method="post">
+      <div class="modal-header"><h5 class="modal-title">Consommation du jour</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2"><label class="form-label">Date</label>
+          <input type="date" class="form-control" name="date_jour" value="{{ date_fin }}" required></div>
+        <div class="mb-2"><label class="form-label">Lot (optionnel)</label>
+          <select class="form-select" name="lot_id">
+            <option value="">Tous les lots</option>
+            {% for l in lots %}<option value="{{ l.id }}">{{ l.nom }}</option>{% endfor %}
+          </select></div>
+        <div class="mb-2"><label class="form-label">Type de provende</label>
+          <select class="form-select" name="type_provende_id" required>
+            {% for t in types %}<option value="{{ t.id }}">{{ t.nom }}</option>{% endfor %}
+          </select></div>
+        <div class="mb-2"><label class="form-label">Quantité consommée (kg)</label>
+          <input type="number" step="0.1" min="0" class="form-control" name="quantite_kg" required></div>
+        <div class="mb-2"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="2"></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-primary">Enregistrer</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

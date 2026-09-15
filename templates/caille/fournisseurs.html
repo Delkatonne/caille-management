@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Fournisseurs{% endblock %}
+{% block page_title %}Fournisseurs de provende{% endblock %}
+{% block page_actions %}
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalFournisseur"><i class="bi bi-plus-lg"></i> Nouveau fournisseur</button>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>Nom</th><th>Contact</th><th>Adresse</th><th>Notes</th></tr></thead>
+      <tbody>
+      {% for f in fournisseurs %}
+        <tr>
+          <td>{{ f.nom }}</td>
+          <td>{{ f.contact or '—' }}</td>
+          <td>{{ f.adresse or '—' }}</td>
+          <td>{{ f.notes or '' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="text-center text-muted py-4">Aucun fournisseur enregistré.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="modalFournisseur" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" action="{{ url_for('caille.fournisseurs') }}" method="post">
+      <div class="modal-header"><h5 class="modal-title">Nouveau fournisseur</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2"><label class="form-label">Nom</label><input class="form-control" name="nom" required></div>
+        <div class="mb-2"><label class="form-label">Contact (téléphone)</label><input class="form-control" name="contact"></div>
+        <div class="mb-2"><label class="form-label">Adresse</label><input class="form-control" name="adresse"></div>
+        <div class="mb-2"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="2"></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-primary">Ajouter</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

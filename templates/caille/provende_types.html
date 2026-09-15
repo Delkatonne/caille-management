@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Types de provende{% endblock %}
+{% block page_title %}Types de provende{% endblock %}
+{% block page_actions %}
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalType"><i class="bi bi-plus-lg"></i> Nouveau type</button>
+{% endblock %}
+
+{% block content %}
+<div class="alert alert-secondary">
+  <strong>Repères courants pour la caille :</strong> Démarrage (0–3 semaines, ~28% protéines),
+  Croissance (3–6 semaines, ~22% protéines), Ponte (dès la ponte, ~20% protéines + calcium).
+  Adaptez selon les recommandations de votre fournisseur/vétérinaire.
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>Nom</th><th>Description</th><th>Stock actuel (kg)</th><th>Seuil d'alerte (kg)</th><th>Statut</th><th></th></tr></thead>
+      <tbody>
+      {% for t in types %}
+        <tr class="{{ 'table-danger' if t.en_alerte }}">
+          <td>{{ t.nom }}</td>
+          <td>{{ t.description or '' }}</td>
+          <td>{{ t.stock_actuel_kg }}</td>
+          <td>{{ t.seuil_alerte_kg }}</td>
+          <td>
+            {% if not t.actif %}<span class="badge bg-secondary">Inactif</span>
+            {% elif t.en_alerte %}<span class="badge bg-danger">À réapprovisionner</span>
+            {% else %}<span class="badge bg-success">OK</span>{% endif %}
+          </td>
+          <td class="text-end">
+            <form action="{{ url_for('caille.desactiver_type_provende', type_id=t.id) }}" method="post" class="d-inline">
+              <button class="btn btn-sm btn-outline-secondary">{{ 'Réactiver' if not t.actif else 'Désactiver' }}</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="text-center text-muted py-4">Aucun type de provende. Ajoutez « Démarrage », « Croissance » et « Ponte » pour commencer.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="modalType" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" action="{{ url_for('caille.types_provende') }}" method="post">
+      <div class="modal-header"><h5 class="modal-title">Nouveau type de provende</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2"><label class="form-label">Nom</label>
+          <input class="form-control" name="nom" placeholder="Ex: Démarrage, Croissance, Ponte" required></div>
+        <div class="mb-2"><label class="form-label">Description</label>
+          <textarea class="form-control" name="description" rows="2" placeholder="Composition, % protéines, usage..."></textarea></div>
+        <div class="mb-2"><label class="form-label">Seuil d'alerte (kg)</label>
+          <input type="number" step="0.1" min="0" class="form-control" name="seuil_alerte_kg" value="20"></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-primary">Ajouter</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

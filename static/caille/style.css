@@ -1,0 +1,83 @@
+:root {
+  --caille-primary: #8a5a2b;
+  --caille-primary-dark: #6e4622;
+  --caille-bg: #f7f4ef;
+  --caille-accent: #d99a3d;
+}
+
+body {
+  background: var(--caille-bg);
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+.caille-sidebar {
+  width: 230px;
+  min-height: 100vh;
+  background: var(--caille-primary-dark);
+  color: #f5ead9;
+  padding: 1rem 0;
+  flex-shrink: 0;
+}
+
+.sidebar-brand {
+  font-weight: 700;
+  font-size: 1.15rem;
+  padding: 0 1.2rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,.15);
+  margin-bottom: .5rem;
+}
+.sidebar-brand span { color: var(--caille-accent); }
+
+.caille-sidebar a {
+  display: block;
+  padding: .55rem 1.2rem;
+  color: #e9dcc4;
+  text-decoration: none;
+  font-size: .93rem;
+}
+.caille-sidebar a:hover { background: rgba(255,255,255,.08); }
+.caille-sidebar a.active {
+  background: var(--caille-accent);
+  color: #2b1a08;
+  font-weight: 600;
+}
+.sidebar-group {
+  padding: .8rem 1.2rem .2rem;
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: rgba(255,255,255,.5);
+}
+
+.caille-content {
+  flex: 1;
+  padding: 1.5rem 2rem;
+  max-width: 100%;
+}
+
+.kpi-card {
+  background: #fff;
+  border-radius: .6rem;
+  padding: 1rem 1.2rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  border-left: 4px solid var(--caille-accent);
+  height: 100%;
+}
+.kpi-card .kpi-value { font-size: 1.6rem; font-weight: 700; color: var(--caille-primary-dark); }
+.kpi-card .kpi-label { font-size: .8rem; color: #777; text-transform: uppercase; letter-spacing: .03em; }
+.kpi-card.alerte { border-left-color: #d9534f; }
+
+.badge-categorie-sanitaire { background:#dc3545; }
+.badge-categorie-entretien { background:#6c757d; }
+.badge-categorie-alimentation { background:#d99a3d; color:#2b1a08; }
+.badge-categorie-vente { background:#198754; }
+.badge-categorie-reapprovisionnement { background:#0d6efd; }
+.badge-categorie-general { background:#6c757d; }
+
+.table thead th { background:#f0e8db; font-size:.82rem; text-transform:uppercase; letter-spacing:.02em; }
+
+@media (max-width: 768px) {
+  .d-flex.has-sidebar { flex-direction: column; }
+  .caille-sidebar { width: 100%; min-height: auto; }
+  .caille-content { padding: 1rem; }
+}
