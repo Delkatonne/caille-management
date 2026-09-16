@@ -8,10 +8,14 @@
     <div class="card">
       <div class="card-header"><i class="bi bi-egg"></i> Ponte &amp; ventes d'œufs</div>
       <div class="card-body">
-        <form action="{{ url_for('caille.rapport_ponte_pdf') }}" method="get" target="_blank">
+        <form action="{{ url_for('caille.rapport_ponte_pdf') }}" method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
           <div class="row g-2">
             <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
             <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+            <input type="date" class="form-control form-control-sm date-precise">
           </div>
           <button class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
         </form>
@@ -23,10 +27,14 @@
     <div class="card">
       <div class="card-header"><i class="bi bi-exclamation-triangle"></i> Mortalité</div>
       <div class="card-body">
-        <form action="{{ url_for('caille.rapport_mortalite_pdf') }}" method="get" target="_blank">
+        <form action="{{ url_for('caille.rapport_mortalite_pdf') }}" method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
           <div class="row g-2">
             <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
             <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+            <input type="date" class="form-control form-control-sm date-precise">
           </div>
           <button class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
         </form>
@@ -38,10 +46,14 @@
     <div class="card">
       <div class="card-header"><i class="bi bi-cart-plus"></i> Achats de provende</div>
       <div class="card-body">
-        <form action="{{ url_for('caille.rapport_achats_pdf') }}" method="get" target="_blank">
+        <form action="{{ url_for('caille.rapport_achats_pdf') }}" method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
           <div class="row g-2">
             <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
             <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+            <input type="date" class="form-control form-control-sm date-precise">
           </div>
           <button class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
         </form>
@@ -54,10 +66,19 @@
       <div class="card-header"><i class="bi bi-grid-3x3-gap"></i> Fiche d'un lot</div>
       <div class="card-body">
         <label class="form-label small">Choisir un lot</label>
-        <select class="form-select form-select-sm mb-3" id="selectLotPdf">
+        <select class="form-select form-select-sm mb-2" id="selectLotPdf">
           {% for l in lots %}<option value="{{ l.id }}">{{ l.nom }}{{ ' (archivé)' if l.statut=='archive' }}</option>{% endfor %}
         </select>
-        <button class="btn btn-outline-primary btn-sm" onclick="ouvrirFicheLot()"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
+        <div class="row g-2">
+          <div class="col-6"><label class="form-label small">Du (optionnel)</label><input type="date" class="form-control form-control-sm" id="lotDebut"></div>
+          <div class="col-6"><label class="form-label small">Au (optionnel)</label><input type="date" class="form-control form-control-sm" id="lotFin"></div>
+        </div>
+        <div class="mt-2">
+          <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+          <input type="date" class="form-control form-control-sm" id="lotDatePrecise">
+        </div>
+        <button class="btn btn-outline-primary btn-sm mt-3" onclick="ouvrirFicheLot()"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
+        <div class="form-text">Laisser les dates vides pour l'historique complet du lot.</div>
       </div>
     </div>
   </div>
@@ -66,9 +87,31 @@
 
 {% block scripts %}
 <script>
+// Si une "date précise" est renseignée dans un formulaire, elle remplace
+// à la fois le "Du" et le "Au" avant l'envoi -> rapport sur un seul jour.
+function appliquerDatePrecise(form) {
+  const datePrecise = form.querySelector('.date-precise');
+  if (datePrecise && datePrecise.value) {
+    form.querySelector('input[name="debut"]').value = datePrecise.value;
+    form.querySelector('input[name="fin"]').value = datePrecise.value;
+  }
+  return true;
+}
+
 function ouvrirFicheLot() {
   const id = document.getElementById('selectLotPdf').value;
-  if (id) window.open(`/caille/rapports/lot/${id}.pdf`, '_blank');
+  if (!id) return;
+  const datePrecise = document.getElementById('lotDatePrecise').value;
+  let debut = document.getElementById('lotDebut').value;
+  let fin = document.getElementById('lotFin').value;
+  if (datePrecise) { debut = datePrecise; fin = datePrecise; }
+
+  let url = `/caille/rapports/lot/${id}.pdf`;
+  const params = [];
+  if (debut) params.push('debut=' + debut);
+  if (fin) params.push('fin=' + fin);
+  if (params.length) url += '?' + params.join('&');
+  window.open(url, '_blank');
 }
 </script>
 {% endblock %}
