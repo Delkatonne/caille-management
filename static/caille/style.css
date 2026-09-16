@@ -76,8 +76,43 @@ body {
 
 .table thead th { background:#f0e8db; font-size:.82rem; text-transform:uppercase; letter-spacing:.02em; }
 
-@media (max-width: 768px) {
-  .d-flex.has-sidebar { flex-direction: column; }
-  .caille-sidebar { width: 100%; min-height: auto; }
+/* ---- Barre mobile + menu hamburger (sidebar en tiroir sous 768px) ---- */
+.mobile-topbar {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  background: var(--caille-primary-dark);
+  color: #f5ead9;
+  padding: .7rem 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+}
+.mobile-topbar .btn-hamburger {
+  background: none;
+  border: none;
+  color: #f5ead9;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0 .2rem;
+}
+.mobile-topbar-title { font-weight: 700; font-size: 1.05rem; }
+.mobile-topbar-title span,
+.sidebar-brand-mobile span { color: var(--caille-accent); }
+.sidebar-brand-mobile { font-weight: 700; font-size: 1.05rem; color: #f5ead9; }
+
+/* offcanvas-md : tiroir plein écran sous 768px, sidebar statique au-dessus */
+.caille-sidebar.offcanvas-md {
+  --bs-offcanvas-width: 260px;
+  background-color: var(--caille-primary-dark);
+  color: #f5ead9;
+}
+.caille-sidebar .offcanvas-header {
+  border-bottom: 1px solid rgba(255,255,255,.15);
+  padding: 1rem 1.2rem;
+}
+
+@media (max-width: 767.98px) {
   .caille-content { padding: 1rem; }
+  .kpi-value { font-size: 1.35rem; }
 }

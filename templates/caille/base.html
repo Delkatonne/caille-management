@@ -9,57 +9,80 @@
 <link rel="stylesheet" href="{{ url_for('caille.static', filename='style.css') }}">
 </head>
 <body>
+
+<!-- Barre mobile avec bouton hamburger (visible uniquement en dessous de 768px) -->
+<div class="mobile-topbar d-md-none">
+  <button class="btn-hamburger" type="button" data-bs-toggle="offcanvas" data-bs-target="#cailleSidebar" aria-controls="cailleSidebar" aria-label="Ouvrir le menu">
+    <i class="bi bi-list"></i>
+  </button>
+  <span class="mobile-topbar-title"><i class="bi bi-egg-fried"></i> HITNA <span>Caille</span></span>
+</div>
+
 <div class="d-flex">
-  <nav class="caille-sidebar">
-    <div class="sidebar-brand">
-      <i class="bi bi-egg-fried"></i> HITNA <span>Caille</span>
+  <!-- Sidebar : offcanvas-md = repliée en tiroir sous 768px, fixe/visible au-dessus -->
+  <nav class="offcanvas-md offcanvas-start caille-sidebar" tabindex="-1" id="cailleSidebar" aria-labelledby="cailleSidebarLabel">
+    <div class="offcanvas-header d-md-none">
+      <span class="sidebar-brand-mobile" id="cailleSidebarLabel">
+        <i class="bi bi-egg-fried"></i> HITNA <span>Caille</span>
+      </span>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#cailleSidebar" aria-label="Fermer"></button>
     </div>
-    <a href="{{ url_for('caille.dashboard') }}" class="{{ 'active' if request.endpoint=='caille.dashboard' }}">
-      <i class="bi bi-speedometer2"></i> Tableau de bord
-    </a>
-    <a href="{{ url_for('caille.lots') }}" class="{{ 'active' if request.endpoint in ['caille.lots','caille.detail_lot'] }}">
-      <i class="bi bi-grid-3x3-gap"></i> Lots de cailles
-    </a>
-    <a href="{{ url_for('caille.ponte') }}" class="{{ 'active' if request.endpoint=='caille.ponte' }}">
-      <i class="bi bi-egg"></i> Ponte &amp; ventes d'œufs
-    </a>
-    <a href="{{ url_for('caille.mortalite') }}" class="{{ 'active' if request.endpoint=='caille.mortalite' }}">
-      <i class="bi bi-exclamation-triangle"></i> Mortalité
-    </a>
-    <a href="{{ url_for('caille.naissances') }}" class="{{ 'active' if request.endpoint=='caille.naissances' }}">
-      <i class="bi bi-flower1"></i> Cailletons (naissances)
-    </a>
-    <div class="sidebar-group">Provende</div>
-    <a href="{{ url_for('caille.types_provende') }}" class="{{ 'active' if request.endpoint=='caille.types_provende' }}">
-      <i class="bi bi-tags"></i> Types de provende
-    </a>
-    <a href="{{ url_for('caille.achats_provende') }}" class="{{ 'active' if request.endpoint=='caille.achats_provende' }}">
-      <i class="bi bi-cart-plus"></i> Achats / réappro.
-    </a>
-    <a href="{{ url_for('caille.consommation_provende') }}" class="{{ 'active' if request.endpoint=='caille.consommation_provende' }}">
-      <i class="bi bi-basket"></i> Consommation
-    </a>
-    <a href="{{ url_for('caille.fournisseurs') }}" class="{{ 'active' if request.endpoint=='caille.fournisseurs' }}">
-      <i class="bi bi-truck"></i> Fournisseurs
-    </a>
-    <div class="sidebar-group">Suivi</div>
-    <a href="{{ url_for('caille.taches') }}" class="{{ 'active' if request.endpoint=='caille.taches' }}">
-      <i class="bi bi-clipboard-check"></i> Cahier de charges
-    </a>
-    <a href="{{ url_for('caille.statistiques') }}" class="{{ 'active' if request.endpoint=='caille.statistiques' }}">
-      <i class="bi bi-graph-up"></i> Statistiques
-    </a>
-    <a href="{{ url_for('caille.rapports') }}" class="{{ 'active' if request.endpoint=='caille.rapports' }}">
-      <i class="bi bi-file-earmark-pdf"></i> Rapports PDF
-    </a>
-    <a href="{{ url_for('caille.archive') }}" class="{{ 'active' if request.endpoint=='caille.archive' }}">
-      <i class="bi bi-archive"></i> Archive
-    </a>
-    {% if current_user.is_authenticated %}
-    <div class="sidebar-group">Compte</div>
-    <div class="px-3 small" style="color:#c9b896;">{{ current_user.username }}</div>
-    <a href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i> Déconnexion</a>
-    {% endif %}
+
+    <div class="offcanvas-body p-0 d-flex flex-column">
+      <div class="sidebar-brand d-none d-md-block">
+        <i class="bi bi-egg-fried"></i> HITNA <span>Caille</span>
+      </div>
+
+      <a href="{{ url_for('caille.dashboard') }}" class="{{ 'active' if request.endpoint=='caille.dashboard' }}">
+        <i class="bi bi-speedometer2"></i> Tableau de bord
+      </a>
+      <a href="{{ url_for('caille.lots') }}" class="{{ 'active' if request.endpoint in ['caille.lots','caille.detail_lot'] }}">
+        <i class="bi bi-grid-3x3-gap"></i> Lots de cailles
+      </a>
+      <a href="{{ url_for('caille.ponte') }}" class="{{ 'active' if request.endpoint=='caille.ponte' }}">
+        <i class="bi bi-egg"></i> Ponte &amp; ventes d'œufs
+      </a>
+      <a href="{{ url_for('caille.mortalite') }}" class="{{ 'active' if request.endpoint=='caille.mortalite' }}">
+        <i class="bi bi-exclamation-triangle"></i> Mortalité
+      </a>
+      <a href="{{ url_for('caille.naissances') }}" class="{{ 'active' if request.endpoint=='caille.naissances' }}">
+        <i class="bi bi-flower1"></i> Cailletons (naissances)
+      </a>
+      <div class="sidebar-group">Provende</div>
+      <a href="{{ url_for('caille.types_provende') }}" class="{{ 'active' if request.endpoint=='caille.types_provende' }}">
+        <i class="bi bi-tags"></i> Types de provende
+      </a>
+      <a href="{{ url_for('caille.achats_provende') }}" class="{{ 'active' if request.endpoint=='caille.achats_provende' }}">
+        <i class="bi bi-cart-plus"></i> Achats / réappro.
+      </a>
+      <a href="{{ url_for('caille.consommation_provende') }}" class="{{ 'active' if request.endpoint=='caille.consommation_provende' }}">
+        <i class="bi bi-basket"></i> Consommation
+      </a>
+      <a href="{{ url_for('caille.fournisseurs') }}" class="{{ 'active' if request.endpoint=='caille.fournisseurs' }}">
+        <i class="bi bi-truck"></i> Fournisseurs
+      </a>
+      <div class="sidebar-group">Suivi</div>
+      <a href="{{ url_for('caille.taches') }}" class="{{ 'active' if request.endpoint=='caille.taches' }}">
+        <i class="bi bi-clipboard-check"></i> Cahier de charges
+      </a>
+      <a href="{{ url_for('caille.statistiques') }}" class="{{ 'active' if request.endpoint=='caille.statistiques' }}">
+        <i class="bi bi-graph-up"></i> Statistiques
+      </a>
+      <a href="{{ url_for('caille.rapports') }}" class="{{ 'active' if request.endpoint=='caille.rapports' }}">
+        <i class="bi bi-file-earmark-pdf"></i> Rapports PDF
+      </a>
+      <a href="{{ url_for('caille.archive') }}" class="{{ 'active' if request.endpoint=='caille.archive' }}">
+        <i class="bi bi-archive"></i> Archive
+      </a>
+
+      {% if current_user.is_authenticated %}
+      <div class="sidebar-group">Compte</div>
+      <div class="px-3 small" style="color:#c9b896;">{{ current_user.username }}</div>
+      <a href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i> Déconnexion</a>
+      {% endif %}
+
+      <div class="flex-grow-1"></div>
+    </div>
   </nav>
 
   <main class="caille-content">
@@ -74,7 +97,7 @@
       {% endif %}
     {% endwith %}
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
       <h3 class="mb-0">{% block page_title %}{% endblock %}</h3>
       {% block page_actions %}{% endblock %}
     </div>
