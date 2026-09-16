@@ -82,6 +82,73 @@
       </div>
     </div>
   </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-flower1"></i> Naissances (cailletons)</div>
+      <div class="card-body">
+        <form action="{{ url_for('caille.rapport_naissances_pdf') }}" method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+            <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+            <input type="date" class="form-control form-control-sm date-precise">
+          </div>
+          <button class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-basket"></i> Consommation de provende</div>
+      <div class="card-body">
+        <form action="{{ url_for('caille.rapport_consommation_pdf') }}" method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+            <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+            <input type="date" class="form-control form-control-sm date-precise">
+          </div>
+          <button class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-clipboard-check"></i> Cahier de charges</div>
+      <div class="card-body">
+        <form action="{{ url_for('caille.rapport_taches_pdf') }}" method="get" target="_blank">
+          <label class="form-label small">Filtrer par statut</label>
+          <select class="form-select form-select-sm" name="statut">
+            <option value="tous">Toutes les tâches</option>
+            <option value="a_faire">À faire</option>
+            <option value="en_cours">En cours</option>
+            <option value="fait">Terminées</option>
+          </select>
+          <button class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-truck"></i> Fournisseurs</div>
+      <div class="card-body">
+        <p class="text-muted small">Liste complète des fournisseurs enregistrés.</p>
+        <a href="{{ url_for('caille.rapport_fournisseurs_pdf') }}" target="_blank" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF
+        </a>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 

@@ -175,3 +175,107 @@ def fiche_lot(lot, pontes, mortalites, naissances):
     doc.build(elements)
     buffer.seek(0)
     return buffer
+
+
+def rapport_naissances(entrees, date_debut, date_fin, total):
+    buffer = io.BytesIO()
+    doc, elements, styles = _doc(buffer, "Rapport des naissances de cailletons")
+    elements.append(Paragraph(
+        f"Période : {date_debut.strftime('%d/%m/%Y')} au {date_fin.strftime('%d/%m/%Y')}",
+        styles["Normal"]))
+    elements.append(Spacer(1, 0.4 * cm))
+
+    data = [["Date", "Lot", "Nombre", "Origine", "Notes"]]
+    for e in entrees:
+        data.append([
+            e.date_jour.strftime("%d/%m/%Y"), e.lot.nom, e.nombre_cailletons,
+            "Éclosion" if e.origine == "eclosion" else "Achat", e.notes or "",
+        ])
+    data.append(["", "TOTAL", total, "", ""])
+
+    if len(data) == 2:
+        elements.append(Paragraph("Aucune donnée sur cette période.", styles["Normal"]))
+    else:
+        t = Table(data, repeatRows=1)
+        t.setStyle(_table_style(len(data[0])))
+        elements.append(t)
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+
+def rapport_consommation(entrees, date_debut, date_fin, total_kg):
+    buffer = io.BytesIO()
+    doc, elements, styles = _doc(buffer, "Rapport de consommation de provende")
+    elements.append(Paragraph(
+        f"Période : {date_debut.strftime('%d/%m/%Y')} au {date_fin.strftime('%d/%m/%Y')}",
+        styles["Normal"]))
+    elements.append(Spacer(1, 0.4 * cm))
+
+    data = [["Date", "Lot", "Type", "Quantité (kg)", "Notes"]]
+    for c in entrees:
+        data.append([
+            c.date_jour.strftime("%d/%m/%Y"), c.lot.nom if c.lot else "Tous lots",
+            c.type_provende.nom, c.quantite_kg, c.notes or "",
+        ])
+    data.append(["", "", "TOTAL", total_kg, ""])
+
+    if len(data) == 2:
+        elements.append(Paragraph("Aucune donnée sur cette période.", styles["Normal"]))
+    else:
+        t = Table(data, repeatRows=1)
+        t.setStyle(_table_style(len(data[0])))
+        elements.append(t)
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+
+def rapport_taches(taches, filtre_statut):
+    buffer = io.BytesIO()
+    doc, elements, styles = _doc(buffer, "Cahier de charges — tâches &amp; protocoles")
+    libelle_filtre = {"tous": "Toutes", "a_faire": "À faire", "en_cours": "En cours", "fait": "Terminées"}
+    elements.append(Paragraph(f"Filtre : {libelle_filtre.get(filtre_statut, 'Toutes')}", styles["Normal"]))
+    elements.append(Spacer(1, 0.4 * cm))
+
+    libelle_statut = {"a_faire": "À faire", "en_cours": "En cours", "fait": "Fait"}
+    data = [["Titre", "Catégorie", "Lot", "Date prévue", "Récurrence", "Statut"]]
+    for t in taches:
+        data.append([
+            t.titre, t.categorie, t.lot.nom if t.lot else "—",
+            t.date_prevue.strftime("%d/%m/%Y") if t.date_prevue else "—",
+            t.recurrence or "aucune", libelle_statut.get(t.statut, t.statut),
+        ])
+
+    if len(data) == 1:
+        elements.append(Paragraph("Aucune tâche pour ce filtre.", styles["Normal"]))
+    else:
+        t_tab = Table(data, repeatRows=1)
+        t_tab.setStyle(_table_style(len(data[0]), total_row=False))
+        elements.append(t_tab)
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+
+def rapport_fournisseurs(fournisseurs):
+    buffer = io.BytesIO()
+    doc, elements, styles = _doc(buffer, "Liste des fournisseurs")
+
+    data = [["Nom", "Contact", "Adresse", "Notes"]]
+    for f in fournisseurs:
+        data.append([f.nom, f.contact or "—", f.adresse or "—", f.notes or ""])
+
+    if len(data) == 1:
+        elements.append(Paragraph("Aucun fournisseur enregistré.", styles["Normal"]))
+    else:
+        t = Table(data, repeatRows=1)
+        t.setStyle(_table_style(len(data[0]), total_row=False))
+        elements.append(t)
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer

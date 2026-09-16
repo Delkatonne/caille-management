@@ -587,9 +587,66 @@ def rapport_achats_pdf():
 @caille_bp.route("/rapports/lot/<int:lot_id>.pdf")
 def rapport_lot_pdf(lot_id):
     lot = Lot.query.get_or_404(lot_id)
-    pontes = lot.pontes.order_by(SuiviPonte.date_jour).all()
-    mortalites = lot.mortalites.order_by(SuiviMortalite.date_jour).all()
-    naissances = lot.naissances.order_by(Naissance.date_jour).all()
-    buf = reports.fiche_lot(lot, pontes, mortalites, naissances)
+    debut_param = request.args.get("debut")
+    fin_param = request.args.get("fin")
+
+    pontes_q = lot.pontes.order_by(SuiviPonte.date_jour)
+    mortalites_q = lot.mortalites.order_by(SuiviMortalite.date_jour)
+    naissances_q = lot.naissances.order_by(Naissance.date_jour)
+
+    if debut_param or fin_param:
+        # Bornes larges par défaut si une seule des deux dates est fournie,
+        # pour ne filtrer que sur celle qui a été renseignée.
+        date_debut = _parse_date(debut_param, date(1900, 1, 1))
+        date_fin = _parse_date(fin_param, date.today())
+        pontes_q = pontes_q.filter(SuiviPonte.date_jour.between(date_debut, date_fin))
+        mortalites_q = mortalites_q.filter(SuiviMortalite.date_jour.between(date_debut, date_fin))
+        naissances_q = naissances_q.filter(Naissance.date_jour.between(date_debut, date_fin))
+
+    buf = reports.fiche_lot(lot, pontes_q.all(), mortalites_q.all(), naissances_q.all())
     return send_file(buf, mimetype="application/pdf", as_attachment=True,
                       download_name=f"fiche_{lot.nom}.pdf")
+
+
+@caille_bp.route("/rapports/naissances.pdf")
+def rapport_naissances_pdf():
+    date_debut = _parse_date(request.args.get("debut"), date.today() - timedelta(days=29))
+    date_fin = _parse_date(request.args.get("fin"), date.today())
+    entrees = Naissance.query.filter(Naissance.date_jour.between(date_debut, date_fin)) \
+        .order_by(Naissance.date_jour).all()
+    total = sum(e.nombre_cailletons for e in entrees)
+    buf = reports.rapport_naissances(entrees, date_debut, date_fin, total)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True,
+                      download_name=f"rapport_naissances_{date_debut}_{date_fin}.pdf")
+
+
+@caille_bp.route("/rapports/consommation.pdf")
+def rapport_consommation_pdf():
+    date_debut = _parse_date(request.args.get("debut"), date.today() - timedelta(days=29))
+    date_fin = _parse_date(request.args.get("fin"), date.today())
+    entrees = ConsommationProvende.query.filter(ConsommationProvende.date_jour.between(date_debut, date_fin)) \
+        .order_by(ConsommationProvende.date_jour).all()
+    total_kg = round(sum(e.quantite_kg for e in entrees), 2)
+    buf = reports.rapport_consommation(entrees, date_debut, date_fin, total_kg)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True,
+                      download_name=f"rapport_consommation_{date_debut}_{date_fin}.pdf")
+
+
+@caille_bp.route("/rapports/taches.pdf")
+def rapport_taches_pdf():
+    filtre_statut = request.args.get("statut", "tous")
+    query = Tache.query
+    if filtre_statut != "tous":
+        query = query.filter_by(statut=filtre_statut)
+    taches_liste = query.order_by(Tache.date_prevue.asc().nullslast()).all()
+    buf = reports.rapport_taches(taches_liste, filtre_statut)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True,
+                      download_name=f"cahier_de_charges_{filtre_statut}.pdf")
+
+
+@caille_bp.route("/rapports/fournisseurs.pdf")
+def rapport_fournisseurs_pdf():
+    liste = Fournisseur.query.order_by(Fournisseur.nom).all()
+    buf = reports.rapport_fournisseurs(liste)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True,
+                      download_name="fournisseurs.pdf")
