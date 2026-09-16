@@ -33,13 +33,14 @@ body {
   align-items: center;
   gap: .7rem;
   margin: .15rem .65rem;
-  padding: .55rem .85rem;
+  padding: .6rem .85rem;
   border-radius: .5rem;
-  color: #fbf3e4;
+  color: #ffffff;
   text-decoration: none;
   font-size: .93rem;
-  font-weight: 500;
-  background: rgba(255,255,255,.05);
+  font-weight: 600;
+  background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.08);
   transition: background-color .15s ease, color .15s ease;
 }
 .caille-sidebar a i {
@@ -47,9 +48,10 @@ body {
   width: 1.2rem;
   text-align: center;
   flex-shrink: 0;
+  color: var(--caille-accent);
 }
 .caille-sidebar a:hover {
-  background: rgba(255,255,255,.16);
+  background: rgba(255,255,255,.26);
   color: #ffffff;
 }
 .caille-sidebar a.active {
@@ -58,6 +60,7 @@ body {
   font-weight: 700;
   box-shadow: 0 1px 4px rgba(0,0,0,.25);
 }
+.caille-sidebar a.active i { color: #2b1a08; }
 .sidebar-group {
   padding: .9rem 1.3rem .3rem;
   font-size: .72rem;
