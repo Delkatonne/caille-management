@@ -29,24 +29,42 @@ body {
 .sidebar-brand span { color: var(--caille-accent); }
 
 .caille-sidebar a {
-  display: block;
-  padding: .55rem 1.2rem;
-  color: #e9dcc4;
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  margin: .15rem .65rem;
+  padding: .55rem .85rem;
+  border-radius: .5rem;
+  color: #fbf3e4;
   text-decoration: none;
   font-size: .93rem;
+  font-weight: 500;
+  background: rgba(255,255,255,.05);
+  transition: background-color .15s ease, color .15s ease;
 }
-.caille-sidebar a:hover { background: rgba(255,255,255,.08); }
+.caille-sidebar a i {
+  font-size: 1.05rem;
+  width: 1.2rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+.caille-sidebar a:hover {
+  background: rgba(255,255,255,.16);
+  color: #ffffff;
+}
 .caille-sidebar a.active {
   background: var(--caille-accent);
   color: #2b1a08;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0,0,0,.25);
 }
 .sidebar-group {
-  padding: .8rem 1.2rem .2rem;
+  padding: .9rem 1.3rem .3rem;
   font-size: .72rem;
   text-transform: uppercase;
-  letter-spacing: .05em;
-  color: rgba(255,255,255,.5);
+  letter-spacing: .07em;
+  font-weight: 700;
+  color: rgba(255,255,255,.65);
 }
 
 .caille-content {
