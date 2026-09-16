@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Changer le mot de passe{% endblock %}
+{% block page_title %}Changer le mot de passe{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-body">
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Mot de passe actuel</label>
+            <input type="password" class="form-control" name="ancien_mot_de_passe" required autofocus>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Nouveau mot de passe</label>
+            <input type="password" class="form-control" name="nouveau_mot_de_passe" minlength="6" required>
+            <div class="form-text">Au moins 6 caractères.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Confirmer le nouveau mot de passe</label>
+            <input type="password" class="form-control" name="confirmation" minlength="6" required>
+          </div>
+          <button class="btn btn-primary"><i class="bi bi-key"></i> Mettre à jour le mot de passe</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

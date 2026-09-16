@@ -6,8 +6,9 @@ son propre système d'authentification, ce blueprint peut être retiré et
 remplacé par le login existant (voir README.md).
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from flask_login import login_user, logout_user, login_required
+from flask_login import login_user, logout_user, login_required, current_user
 
+from extensions import db
 from models import User
 
 auth_bp = Blueprint(
@@ -37,3 +38,26 @@ def logout():
     logout_user()
     flash("Vous avez été déconnecté.", "info")
     return redirect(url_for("auth.login"))
+
+
+@auth_bp.route("/compte/mot-de-passe", methods=["GET", "POST"])
+@login_required
+def changer_mot_de_passe():
+    if request.method == "POST":
+        ancien = request.form.get("ancien_mot_de_passe", "")
+        nouveau = request.form.get("nouveau_mot_de_passe", "")
+        confirmation = request.form.get("confirmation", "")
+
+        if not current_user.check_password(ancien):
+            flash("Le mot de passe actuel est incorrect.", "danger")
+        elif len(nouveau) < 6:
+            flash("Le nouveau mot de passe doit contenir au moins 6 caractères.", "danger")
+        elif nouveau != confirmation:
+            flash("La confirmation ne correspond pas au nouveau mot de passe.", "danger")
+        else:
+            current_user.set_password(nouveau)
+            db.session.commit()
+            flash("Mot de passe mis à jour avec succès.", "success")
+            return redirect(url_for("caille.dashboard"))
+
+    return render_template("changer_mot_de_passe.html")
