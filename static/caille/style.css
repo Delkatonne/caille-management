@@ -122,10 +122,14 @@ body {
 .sidebar-brand-mobile span { color: var(--caille-accent); }
 .sidebar-brand-mobile { font-weight: 700; font-size: 1.05rem; color: #f5ead9; }
 
-/* offcanvas-md : tiroir plein écran sous 768px, sidebar statique au-dessus */
-.caille-sidebar.offcanvas-md {
+/* offcanvas-md : tiroir plein écran sous 768px, sidebar statique au-dessus.
+   Bootstrap force background-color: transparent !important sur .offcanvas-md
+   (et sa .offcanvas-body) à partir de 768px : on doit donc réappliquer notre
+   couleur avec !important pour que le fond soit identique en PC et mobile. */
+.caille-sidebar.offcanvas-md,
+.caille-sidebar.offcanvas-md .offcanvas-body {
   --bs-offcanvas-width: 260px;
-  background-color: var(--caille-primary-dark);
+  background-color: var(--caille-primary-dark) !important;
   color: #f5ead9;
 }
 .caille-sidebar .offcanvas-header {
