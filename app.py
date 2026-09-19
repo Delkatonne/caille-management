@@ -40,6 +40,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        _seed_especes_si_vide()
         _seed_types_provende_si_vide()
         _seed_admin_si_vide()
 
@@ -50,6 +51,16 @@ def create_app():
 def load_user(user_id):
     from models import User
     return User.query.get(int(user_id))
+
+
+def _seed_especes_si_vide():
+    """Crée l'espèce « Caille » par défaut si aucune n'existe encore.
+    D'autres espèces (Poule, Lapin, ...) peuvent être ajoutées depuis
+    l'interface (page Espèces / Types d'élevage)."""
+    from models import Espece
+    if Espece.query.count() == 0:
+        db.session.add(Espece(nom="Caille", description="Élevage de cailles (ponte / chair)"))
+        db.session.commit()
 
 
 def _seed_types_provende_si_vide():

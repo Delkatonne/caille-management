@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Rapports{% endblock %}
-{% block page_title %}Rapports PDF{% endblock %}
+{% block page_title %}Rapports (PDF &amp; Excel){% endblock %}
 
 {% block content %}
 <div class="row g-3">
@@ -8,7 +8,7 @@
     <div class="card">
       <div class="card-header"><i class="bi bi-egg"></i> Ponte &amp; ventes d'œufs</div>
       <div class="card-body">
-        <form action="{{ url_for('caille.rapport_ponte_pdf') }}" method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+        <form method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
           <div class="row g-2">
             <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
             <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
@@ -17,7 +17,10 @@
             <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
             <input type="date" class="form-control form-control-sm date-precise">
           </div>
-          <button class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('caille.rapport_ponte_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('caille.rapport_ponte_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
         </form>
       </div>
     </div>
@@ -27,7 +30,7 @@
     <div class="card">
       <div class="card-header"><i class="bi bi-exclamation-triangle"></i> Mortalité</div>
       <div class="card-body">
-        <form action="{{ url_for('caille.rapport_mortalite_pdf') }}" method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+        <form method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
           <div class="row g-2">
             <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
             <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
@@ -36,7 +39,10 @@
             <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
             <input type="date" class="form-control form-control-sm date-precise">
           </div>
-          <button class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('caille.rapport_mortalite_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('caille.rapport_mortalite_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
         </form>
       </div>
     </div>
@@ -46,7 +52,7 @@
     <div class="card">
       <div class="card-header"><i class="bi bi-cart-plus"></i> Achats de provende</div>
       <div class="card-body">
-        <form action="{{ url_for('caille.rapport_achats_pdf') }}" method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+        <form method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
           <div class="row g-2">
             <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
             <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
@@ -55,7 +61,32 @@
             <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
             <input type="date" class="form-control form-control-sm date-precise">
           </div>
-          <button class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('caille.rapport_achats_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('caille.rapport_achats_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-cash-coin"></i> Dépenses diverses</div>
+      <div class="card-body">
+        <form method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+            <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+            <input type="date" class="form-control form-control-sm date-precise">
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('caille.rapport_depenses_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('caille.rapport_depenses_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
         </form>
       </div>
     </div>
@@ -77,16 +108,20 @@
           <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
           <input type="date" class="form-control form-control-sm" id="lotDatePrecise">
         </div>
-        <button class="btn btn-outline-primary btn-sm mt-3" onclick="ouvrirFicheLot()"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
-        <div class="form-text">Laisser les dates vides pour l'historique complet du lot.</div>
+        <div class="mt-3 d-flex gap-2">
+          <button class="btn btn-outline-primary btn-sm" onclick="ouvrirFicheLot('pdf')"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+          <button class="btn btn-outline-success btn-sm" onclick="ouvrirFicheLot('xlsx')"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+        </div>
+        <div class="form-text mt-2">Laisser les dates vides pour l'historique complet du lot.</div>
       </div>
     </div>
   </div>
+
   <div class="col-md-6">
     <div class="card">
       <div class="card-header"><i class="bi bi-flower1"></i> Naissances (cailletons)</div>
       <div class="card-body">
-        <form action="{{ url_for('caille.rapport_naissances_pdf') }}" method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+        <form method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
           <div class="row g-2">
             <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
             <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
@@ -95,7 +130,10 @@
             <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
             <input type="date" class="form-control form-control-sm date-precise">
           </div>
-          <button class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('caille.rapport_naissances_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('caille.rapport_naissances_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
         </form>
       </div>
     </div>
@@ -105,7 +143,7 @@
     <div class="card">
       <div class="card-header"><i class="bi bi-basket"></i> Consommation de provende</div>
       <div class="card-body">
-        <form action="{{ url_for('caille.rapport_consommation_pdf') }}" method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+        <form method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
           <div class="row g-2">
             <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
             <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
@@ -114,7 +152,10 @@
             <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
             <input type="date" class="form-control form-control-sm date-precise">
           </div>
-          <button class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('caille.rapport_consommation_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('caille.rapport_consommation_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
         </form>
       </div>
     </div>
@@ -124,7 +165,7 @@
     <div class="card">
       <div class="card-header"><i class="bi bi-clipboard-check"></i> Cahier de charges</div>
       <div class="card-body">
-        <form action="{{ url_for('caille.rapport_taches_pdf') }}" method="get" target="_blank">
+        <form method="get" target="_blank">
           <label class="form-label small">Filtrer par statut</label>
           <select class="form-select form-select-sm" name="statut">
             <option value="tous">Toutes les tâches</option>
@@ -132,7 +173,10 @@
             <option value="en_cours">En cours</option>
             <option value="fait">Terminées</option>
           </select>
-          <button class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF</button>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('caille.rapport_taches_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('caille.rapport_taches_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
         </form>
       </div>
     </div>
@@ -143,9 +187,14 @@
       <div class="card-header"><i class="bi bi-truck"></i> Fournisseurs</div>
       <div class="card-body">
         <p class="text-muted small">Liste complète des fournisseurs enregistrés.</p>
-        <a href="{{ url_for('caille.rapport_fournisseurs_pdf') }}" target="_blank" class="btn btn-outline-primary btn-sm">
-          <i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF
-        </a>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('caille.rapport_fournisseurs_pdf') }}" target="_blank" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+          </a>
+          <a href="{{ url_for('caille.rapport_fournisseurs_excel') }}" target="_blank" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -165,7 +214,7 @@ function appliquerDatePrecise(form) {
   return true;
 }
 
-function ouvrirFicheLot() {
+function ouvrirFicheLot(format) {
   const id = document.getElementById('selectLotPdf').value;
   if (!id) return;
   const datePrecise = document.getElementById('lotDatePrecise').value;
@@ -173,7 +222,7 @@ function ouvrirFicheLot() {
   let fin = document.getElementById('lotFin').value;
   if (datePrecise) { debut = datePrecise; fin = datePrecise; }
 
-  let url = `/caille/rapports/lot/${id}.pdf`;
+  let url = `/caille/rapports/lot/${id}.${format}`;
   const params = [];
   if (debut) params.push('debut=' + debut);
   if (fin) params.push('fin=' + fin);

@@ -37,7 +37,10 @@
         <i class="bi bi-speedometer2"></i> Tableau de bord
       </a>
       <a href="{{ url_for('caille.lots') }}" class="{{ 'active' if request.endpoint in ['caille.lots','caille.detail_lot'] }}">
-        <i class="bi bi-grid-3x3-gap"></i> Lots de cailles
+        <i class="bi bi-grid-3x3-gap"></i> Lots
+      </a>
+      <a href="{{ url_for('caille.especes') }}" class="{{ 'active' if request.endpoint=='caille.especes' }}">
+        <i class="bi bi-collection"></i> Espèces / Types d'élevage
       </a>
       <a href="{{ url_for('caille.ponte') }}" class="{{ 'active' if request.endpoint=='caille.ponte' }}">
         <i class="bi bi-egg"></i> Ponte &amp; ventes d'œufs
@@ -46,7 +49,7 @@
         <i class="bi bi-exclamation-triangle"></i> Mortalité
       </a>
       <a href="{{ url_for('caille.naissances') }}" class="{{ 'active' if request.endpoint=='caille.naissances' }}">
-        <i class="bi bi-flower1"></i> Cailletons (naissances)
+        <i class="bi bi-flower1"></i> Naissances (cailletons)
       </a>
       <div class="sidebar-group">Provende</div>
       <a href="{{ url_for('caille.types_provende') }}" class="{{ 'active' if request.endpoint=='caille.types_provende' }}">
@@ -61,6 +64,13 @@
       <a href="{{ url_for('caille.fournisseurs') }}" class="{{ 'active' if request.endpoint=='caille.fournisseurs' }}">
         <i class="bi bi-truck"></i> Fournisseurs
       </a>
+      <div class="sidebar-group">Finances</div>
+      <a href="{{ url_for('caille.depenses') }}" class="{{ 'active' if request.endpoint=='caille.depenses' }}">
+        <i class="bi bi-wallet2"></i> Dépenses
+      </a>
+      <a href="{{ url_for('caille.rentabilite') }}" class="{{ 'active' if request.endpoint=='caille.rentabilite' }}">
+        <i class="bi bi-cash-coin"></i> Rentabilité
+      </a>
       <div class="sidebar-group">Suivi</div>
       <a href="{{ url_for('caille.taches') }}" class="{{ 'active' if request.endpoint=='caille.taches' }}">
         <i class="bi bi-clipboard-check"></i> Cahier de charges
@@ -69,7 +79,7 @@
         <i class="bi bi-graph-up"></i> Statistiques
       </a>
       <a href="{{ url_for('caille.rapports') }}" class="{{ 'active' if request.endpoint=='caille.rapports' }}">
-        <i class="bi bi-file-earmark-pdf"></i> Rapports PDF
+        <i class="bi bi-file-earmark-pdf"></i> Rapports
       </a>
       <a href="{{ url_for('caille.archive') }}" class="{{ 'active' if request.endpoint=='caille.archive' }}">
         <i class="bi bi-archive"></i> Archive

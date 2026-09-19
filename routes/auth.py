@@ -45,19 +45,42 @@ def logout():
 def changer_mot_de_passe():
     if request.method == "POST":
         ancien = request.form.get("ancien_mot_de_passe", "")
+        nouvel_identifiant = request.form.get("nouvel_identifiant", "").strip()
         nouveau = request.form.get("nouveau_mot_de_passe", "")
         confirmation = request.form.get("confirmation", "")
 
         if not current_user.check_password(ancien):
             flash("Le mot de passe actuel est incorrect.", "danger")
-        elif len(nouveau) < 6:
-            flash("Le nouveau mot de passe doit contenir au moins 6 caractères.", "danger")
-        elif nouveau != confirmation:
-            flash("La confirmation ne correspond pas au nouveau mot de passe.", "danger")
-        else:
+            return render_template("changer_mot_de_passe.html")
+
+        changements = []
+
+        if nouvel_identifiant and nouvel_identifiant != current_user.username:
+            deja_pris = User.query.filter(
+                User.username == nouvel_identifiant, User.id != current_user.id
+            ).first()
+            if deja_pris:
+                flash("Cet identifiant est déjà utilisé.", "danger")
+                return render_template("changer_mot_de_passe.html")
+            current_user.username = nouvel_identifiant
+            changements.append("identifiant")
+
+        if nouveau or confirmation:
+            if len(nouveau) < 6:
+                flash("Le nouveau mot de passe doit contenir au moins 6 caractères.", "danger")
+                return render_template("changer_mot_de_passe.html")
+            if nouveau != confirmation:
+                flash("La confirmation ne correspond pas au nouveau mot de passe.", "danger")
+                return render_template("changer_mot_de_passe.html")
             current_user.set_password(nouveau)
-            db.session.commit()
-            flash("Mot de passe mis à jour avec succès.", "success")
-            return redirect(url_for("caille.dashboard"))
+            changements.append("mot de passe")
+
+        if not changements:
+            flash("Aucune modification renseignée.", "warning")
+            return render_template("changer_mot_de_passe.html")
+
+        db.session.commit()
+        flash("Mise à jour réussie : " + " et ".join(changements) + ".", "success")
+        return redirect(url_for("caille.dashboard"))
 
     return render_template("changer_mot_de_passe.html")

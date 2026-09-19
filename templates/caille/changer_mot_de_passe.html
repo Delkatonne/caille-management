@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Changer le mot de passe{% endblock %}
-{% block page_title %}Changer le mot de passe{% endblock %}
+{% block title %}Mon compte{% endblock %}
+{% block page_title %}Mon compte{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -9,19 +9,32 @@
       <div class="card-body">
         <form method="post">
           <div class="mb-3">
-            <label class="form-label">Mot de passe actuel</label>
+            <label class="form-label">Mot de passe actuel <span class="text-danger">*</span></label>
             <input type="password" class="form-control" name="ancien_mot_de_passe" required autofocus>
+            <div class="form-text">Toujours requis pour confirmer que c'est bien vous.</div>
           </div>
+
+          <hr>
+
+          <div class="mb-3">
+            <label class="form-label">Nouvel identifiant</label>
+            <input type="text" class="form-control" name="nouvel_identifiant" value="{{ current_user.username }}">
+            <div class="form-text">Laisser tel quel pour ne pas changer l'identifiant.</div>
+          </div>
+
+          <hr>
+
           <div class="mb-3">
             <label class="form-label">Nouveau mot de passe</label>
-            <input type="password" class="form-control" name="nouveau_mot_de_passe" minlength="6" required>
-            <div class="form-text">Au moins 6 caractères.</div>
+            <input type="password" class="form-control" name="nouveau_mot_de_passe" minlength="6">
+            <div class="form-text">Laisser vide pour ne pas changer le mot de passe. Au moins 6 caractères sinon.</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Confirmer le nouveau mot de passe</label>
-            <input type="password" class="form-control" name="confirmation" minlength="6" required>
+            <input type="password" class="form-control" name="confirmation" minlength="6">
           </div>
-          <button class="btn btn-primary"><i class="bi bi-key"></i> Mettre à jour le mot de passe</button>
+
+          <button class="btn btn-primary"><i class="bi bi-check-lg"></i> Enregistrer les modifications</button>
         </form>
       </div>
     </div>

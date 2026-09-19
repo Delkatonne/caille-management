@@ -1,7 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Lots de cailles{% endblock %}
-{% block page_title %}Lots de cailles{% endblock %}
+{% block title %}Lots{% endblock %}
+{% block page_title %}Lots{% endblock %}
 {% block page_actions %}
+<a href="{{ url_for('caille.especes') }}" class="btn btn-outline-secondary btn-sm me-2"><i class="bi bi-collection"></i> Espèces</a>
 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAjoutLot">
   <i class="bi bi-plus-lg"></i> Nouveau lot
 </button>
@@ -14,12 +15,16 @@
   <li class="nav-item"><a class="nav-link {{ 'active' if filtre_statut=='tous' }}" href="{{ url_for('caille.lots', statut='tous') }}">Tous</a></li>
 </ul>
 
+{% if not especes %}
+<div class="alert alert-warning">Aucune espèce définie. <a href="{{ url_for('caille.especes') }}">Ajoutez-en une</a> (ex: Caille) avant de créer un lot.</div>
+{% endif %}
+
 <div class="card">
   <div class="card-body p-0">
     <table class="table mb-0 align-middle">
       <thead>
         <tr>
-          <th>Nom</th><th>Type</th><th>Mise en place</th><th>Effectif initial</th>
+          <th>Nom</th><th>Espèce</th><th>Type</th><th>Mise en place</th><th>Effectif initial</th>
           <th>Effectif actuel</th><th>Statut</th><th></th>
         </tr>
       </thead>
@@ -27,6 +32,7 @@
       {% for lot in lots %}
         <tr>
           <td><a href="{{ url_for('caille.detail_lot', lot_id=lot.id) }}">{{ lot.nom }}</a></td>
+          <td>{% if lot.espece %}<span class="badge bg-secondary">{{ lot.espece.nom }}</span>{% else %}—{% endif %}</td>
           <td>{{ lot.type_lot }}</td>
           <td>{{ lot.date_mise_en_place.strftime('%d/%m/%Y') }}</td>
           <td>{{ lot.effectif_initial }}</td>
@@ -60,6 +66,11 @@
               <div class="modal-body">
                 <div class="mb-2"><label class="form-label">Nom</label>
                   <input class="form-control" name="nom" value="{{ lot.nom }}" required></div>
+                <div class="mb-2"><label class="form-label">Espèce</label>
+                  <select class="form-select" name="espece_id">
+                    <option value="">—</option>
+                    {% for e in especes %}<option value="{{ e.id }}" {{ 'selected' if lot.espece_id==e.id }}>{{ e.nom }}</option>{% endfor %}
+                  </select></div>
                 <div class="mb-2"><label class="form-label">Type</label>
                   <select class="form-select" name="type_lot">
                     <option value="ponte" {{ 'selected' if lot.type_lot=='ponte' }}>Ponte (production d'œufs)</option>
@@ -78,7 +89,7 @@
           </div>
         </div>
       {% else %}
-        <tr><td colspan="7" class="text-center text-muted py-4">Aucun lot pour ce filtre.</td></tr>
+        <tr><td colspan="8" class="text-center text-muted py-4">Aucun lot pour ce filtre.</td></tr>
       {% endfor %}
       </tbody>
     </table>
@@ -89,11 +100,18 @@
 <div class="modal fade" id="modalAjoutLot" tabindex="-1">
   <div class="modal-dialog">
     <form class="modal-content" action="{{ url_for('caille.lots') }}" method="post">
-      <div class="modal-header"><h5 class="modal-title">Nouveau lot de cailles</h5>
+      <div class="modal-header"><h5 class="modal-title">Nouveau lot</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body">
         <div class="mb-2"><label class="form-label">Nom du lot</label>
           <input class="form-control" name="nom" placeholder="Ex: Lot A - Bâtiment 1" required></div>
+        <div class="mb-2"><label class="form-label">Espèce</label>
+          <select class="form-select" name="espece_id">
+            <option value="">—</option>
+            {% for e in especes %}<option value="{{ e.id }}">{{ e.nom }}</option>{% endfor %}
+          </select>
+          <div class="form-text">Pas la bonne espèce dans la liste ? <a href="{{ url_for('caille.especes') }}">Ajoutez-la ici</a>.</div>
+        </div>
         <div class="mb-2"><label class="form-label">Type</label>
           <select class="form-select" name="type_lot">
             <option value="ponte">Ponte (production d'œufs)</option>

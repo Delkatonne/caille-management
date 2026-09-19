@@ -34,11 +34,24 @@ class User(UserMixin, db.Model):
 # ---------------------------------------------------------------------------
 # LOTS (bandes de cailles)
 # ---------------------------------------------------------------------------
+class Espece(db.Model):
+    """Type d'élevage géré (Caille, Poule, Lapin, ...). Permet d'ajouter
+    facilement d'autres sujets gérés que la caille, sans changer le modèle."""
+    __tablename__ = "caille_especes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nom = db.Column(db.String(80), nullable=False, unique=True)
+    description = db.Column(db.Text, nullable=True)
+
+    lots = db.relationship("Lot", backref="espece", lazy="dynamic")
+
+
 class Lot(db.Model):
     __tablename__ = "caille_lots"
 
     id = db.Column(db.Integer, primary_key=True)
     nom = db.Column(db.String(100), nullable=False)
+    espece_id = db.Column(db.Integer, db.ForeignKey("caille_especes.id"), nullable=True)
     type_lot = db.Column(db.String(20), nullable=False, default="ponte")  # ponte, chair, reproduction
     date_mise_en_place = db.Column(db.Date, nullable=False, default=date.today)
     effectif_initial = db.Column(db.Integer, nullable=False, default=0)
@@ -52,6 +65,7 @@ class Lot(db.Model):
     naissances = db.relationship("Naissance", backref="lot", lazy="dynamic", cascade="all, delete-orphan")
     consommations = db.relationship("ConsommationProvende", backref="lot", lazy="dynamic")
     taches = db.relationship("Tache", backref="lot", lazy="dynamic")
+    depenses = db.relationship("Depense", backref="lot", lazy="dynamic")
 
     # ---- Statistiques calculées ----
     @property
@@ -88,6 +102,41 @@ class Lot(db.Model):
     def total_revenu_oeufs(self):
         rows = SuiviPonte.query.filter_by(lot_id=self.id).all()
         return round(sum((r.oeufs_vendus or 0) * (r.prix_unitaire_vente or 0) for r in rows), 2)
+
+    @property
+    def total_consommation_kg(self):
+        return round(db.session.query(db.func.coalesce(db.func.sum(ConsommationProvende.quantite_kg), 0))
+                     .filter(ConsommationProvende.lot_id == self.id).scalar(), 2)
+
+    @property
+    def indice_consommation(self):
+        """Kg de provende consommée par œuf produit (plus bas = plus efficace).
+        Repère indicatif en aviculture : autour de 0,25-0,35 kg/œuf pour la caille."""
+        if self.total_oeufs_pondus:
+            return round((self.total_consommation_kg or 0) / self.total_oeufs_pondus, 3)
+        return None
+
+    @property
+    def cout_provende_estime(self):
+        """Coût de la provende consommée par ce lot, estimé à partir du prix
+        d'achat moyen (pondéré) de chaque type de provende consommé."""
+        total = 0.0
+        for c in self.consommations:
+            total += (c.quantite_kg or 0) * c.type_provende.prix_moyen_achat_kg
+        return round(total, 2)
+
+    @property
+    def total_depenses(self):
+        """Autres dépenses liées à ce lot (vaccination, médicament, transport...)."""
+        return round(db.session.query(db.func.coalesce(db.func.sum(Depense.montant), 0))
+                     .filter(Depense.lot_id == self.id).scalar(), 2)
+
+    @property
+    def marge_estimee(self):
+        """Revenu des ventes d'œufs moins le coût estimé de la provende consommée
+        et les autres dépenses (vaccination, médicament, transport...) du lot."""
+        return round((self.total_revenu_oeufs or 0) - (self.cout_provende_estime or 0)
+                     - (self.total_depenses or 0), 2)
 
 
 # ---------------------------------------------------------------------------
@@ -184,6 +233,16 @@ class TypeProvende(db.Model):
         return round((self.total_achete_kg or 0) - (self.total_consomme_kg or 0), 2)
 
     @property
+    def prix_moyen_achat_kg(self):
+        """Prix moyen pondéré payé au kg, calculé sur l'historique des achats."""
+        total_kg = self.total_achete_kg
+        if not total_kg:
+            return 0.0
+        total_cout = db.session.query(db.func.coalesce(db.func.sum(AchatProvende.prix_total), 0)) \
+            .filter(AchatProvende.type_provende_id == self.id).scalar()
+        return round((total_cout or 0) / total_kg, 2)
+
+    @property
     def en_alerte(self):
         return self.stock_actuel_kg <= self.seuil_alerte_kg
 
@@ -244,5 +303,22 @@ class Tache(db.Model):
     date_realisation = db.Column(db.Date, nullable=True)
     recurrence = db.Column(db.String(20), nullable=True, default="aucune")  # aucune, quotidien, hebdo, mensuel
     statut = db.Column(db.String(20), nullable=False, default="a_faire")  # a_faire, en_cours, fait
+    lot_id = db.Column(db.Integer, db.ForeignKey("caille_lots.id"), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+
+
+# ---------------------------------------------------------------------------
+# DÉPENSES DIVERSES (vaccination, médicament, transport, matériel...)
+# ---------------------------------------------------------------------------
+class Depense(db.Model):
+    """Toute dépense en dehors de la provende : vaccination, médicament,
+    transport, matériel, main d'œuvre... La catégorie est en texte libre —
+    l'utilisateur saisit lui-même ce dans quoi il a dépensé."""
+    __tablename__ = "caille_depenses"
+
+    id = db.Column(db.Integer, primary_key=True)
+    date_depense = db.Column(db.Date, nullable=False, default=date.today)
+    categorie = db.Column(db.String(100), nullable=False)  # ex: Vaccination, Médicament, Transport...
+    montant = db.Column(db.Float, nullable=False, default=0)
     lot_id = db.Column(db.Integer, db.ForeignKey("caille_lots.id"), nullable=True)
     notes = db.Column(db.Text, nullable=True)

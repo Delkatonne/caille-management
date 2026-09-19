@@ -279,3 +279,31 @@ def rapport_fournisseurs(fournisseurs):
     doc.build(elements)
     buffer.seek(0)
     return buffer
+
+
+def rapport_depenses(entrees, date_debut, date_fin, total):
+    buffer = io.BytesIO()
+    doc, elements, styles = _doc(buffer, "Rapport des dépenses diverses")
+    elements.append(Paragraph(
+        f"Période : {date_debut.strftime('%d/%m/%Y')} au {date_fin.strftime('%d/%m/%Y')}",
+        styles["Normal"]))
+    elements.append(Spacer(1, 0.4 * cm))
+
+    data = [["Date", "Catégorie", "Lot", "Montant (F)", "Notes"]]
+    for d in entrees:
+        data.append([
+            d.date_depense.strftime("%d/%m/%Y"), d.categorie,
+            d.lot.nom if d.lot else "—", d.montant, d.notes or "",
+        ])
+    data.append(["", "", "TOTAL", total, ""])
+
+    if len(data) == 2:
+        elements.append(Paragraph("Aucune dépense sur cette période.", styles["Normal"]))
+    else:
+        t = Table(data, repeatRows=1)
+        t.setStyle(_table_style(len(data[0])))
+        elements.append(t)
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer

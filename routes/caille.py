@@ -21,9 +21,10 @@ from extensions import db, login_manager
 from models import (
     Lot, SuiviPonte, SuiviMortalite, Naissance,
     TypeProvende, Fournisseur, AchatProvende, ConsommationProvende,
-    Tache, stock_oeufs_actuel,
+    Tache, Espece, Depense, stock_oeufs_actuel,
 )
 import reports
+import excel_reports
 
 caille_bp = Blueprint(
     "caille", __name__,
@@ -115,6 +116,7 @@ def lots():
     if request.method == "POST":
         lot = Lot(
             nom=request.form.get("nom", "").strip(),
+            espece_id=_parse_int(request.form.get("espece_id")) or None,
             type_lot=request.form.get("type_lot", "ponte"),
             date_mise_en_place=_parse_date(request.form.get("date_mise_en_place")),
             effectif_initial=_parse_int(request.form.get("effectif_initial")),
@@ -133,13 +135,15 @@ def lots():
     if filtre_statut != "tous":
         query = query.filter_by(statut=filtre_statut)
     liste_lots = query.order_by(Lot.date_mise_en_place.desc()).all()
-    return render_template("lots.html", lots=liste_lots, filtre_statut=filtre_statut)
+    especes = Espece.query.order_by(Espece.nom).all()
+    return render_template("lots.html", lots=liste_lots, filtre_statut=filtre_statut, especes=especes)
 
 
 @caille_bp.route("/lots/<int:lot_id>/modifier", methods=["POST"])
 def modifier_lot(lot_id):
     lot = Lot.query.get_or_404(lot_id)
     lot.nom = request.form.get("nom", lot.nom).strip()
+    lot.espece_id = _parse_int(request.form.get("espece_id")) or None
     lot.type_lot = request.form.get("type_lot", lot.type_lot)
     lot.date_mise_en_place = _parse_date(request.form.get("date_mise_en_place"), lot.date_mise_en_place)
     lot.effectif_initial = _parse_int(request.form.get("effectif_initial"), lot.effectif_initial)
@@ -176,6 +180,27 @@ def detail_lot(lot_id):
     mortalites = lot.mortalites.order_by(SuiviMortalite.date_jour.desc()).limit(30).all()
     naissances = lot.naissances.order_by(Naissance.date_jour.desc()).limit(30).all()
     return render_template("lot_detail.html", lot=lot, pontes=pontes, mortalites=mortalites, naissances=naissances)
+
+
+# ---------------------------------------------------------------------------
+# ESPÈCES / TYPES D'ÉLEVAGE (Caille, Poule, Lapin, ...)
+# ---------------------------------------------------------------------------
+@caille_bp.route("/especes", methods=["GET", "POST"])
+def especes():
+    if request.method == "POST":
+        nom = request.form.get("nom", "").strip()
+        if not nom:
+            flash("Le nom de l'espèce est obligatoire.", "danger")
+        elif Espece.query.filter_by(nom=nom).first():
+            flash(f"« {nom} » existe déjà.", "danger")
+        else:
+            db.session.add(Espece(nom=nom, description=request.form.get("description")))
+            db.session.commit()
+            flash(f"Espèce « {nom} » ajoutée. Vous pouvez maintenant créer des lots de ce type.", "success")
+        return redirect(url_for("caille.especes"))
+
+    liste = Espece.query.order_by(Espece.nom).all()
+    return render_template("especes.html", especes=liste)
 
 
 # ---------------------------------------------------------------------------
@@ -418,6 +443,57 @@ def fournisseurs():
 
 
 # ---------------------------------------------------------------------------
+# DÉPENSES DIVERSES (vaccination, médicament, transport, matériel...)
+# ---------------------------------------------------------------------------
+CATEGORIES_DEPENSE_SUGGESTIONS = [
+    "Vaccination", "Médicament", "Alimentation complémentaire",
+    "Transport", "Matériel", "Main d'œuvre", "Entretien", "Autre",
+]
+
+
+@caille_bp.route("/depenses", methods=["GET", "POST"])
+def depenses():
+    if request.method == "POST":
+        categorie = request.form.get("categorie", "").strip()
+        d = Depense(
+            date_depense=_parse_date(request.form.get("date_depense")),
+            categorie=categorie,
+            montant=_parse_float(request.form.get("montant")),
+            lot_id=_parse_int(request.form.get("lot_id")) or None,
+            notes=request.form.get("notes"),
+        )
+        if not categorie:
+            flash("La catégorie de la dépense est obligatoire (ex: Vaccination, Transport...).", "danger")
+        else:
+            db.session.add(d)
+            db.session.commit()
+            flash(f"Dépense « {categorie} » de {d.montant} F enregistrée.", "success")
+        return redirect(url_for("caille.depenses"))
+
+    date_debut = _parse_date(request.args.get("debut"), date.today() - timedelta(days=29))
+    date_fin = _parse_date(request.args.get("fin"), date.today())
+    entrees = Depense.query.filter(Depense.date_depense.between(date_debut, date_fin)) \
+        .order_by(Depense.date_depense.desc()).all()
+    total = round(sum(d.montant for d in entrees), 2)
+
+    lots_tous = Lot.query.filter(Lot.statut != "archive").order_by(Lot.nom).all()
+    return render_template(
+        "depenses.html", entrees=entrees, lots=lots_tous, total=total,
+        date_debut=date_debut, date_fin=date_fin,
+        suggestions=CATEGORIES_DEPENSE_SUGGESTIONS,
+    )
+
+
+@caille_bp.route("/depenses/<int:depense_id>/supprimer", methods=["POST"])
+def supprimer_depense(depense_id):
+    d = Depense.query.get_or_404(depense_id)
+    db.session.delete(d)
+    db.session.commit()
+    flash("Dépense supprimée.", "info")
+    return redirect(url_for("caille.depenses"))
+
+
+# ---------------------------------------------------------------------------
 # CAHIER DE CHARGES (tâches / protocoles)
 # ---------------------------------------------------------------------------
 @caille_bp.route("/taches", methods=["GET", "POST"])
@@ -449,15 +525,38 @@ def taches():
     return render_template("taches.html", taches=liste, lots=lots_actifs, filtre_statut=filtre_statut)
 
 
+RECURRENCE_DELTA = {
+    "quotidien": timedelta(days=1),
+    "hebdo": timedelta(weeks=1),
+    "mensuel": timedelta(days=30),
+}
+
+
 @caille_bp.route("/taches/<int:tache_id>/statut", methods=["POST"])
 def changer_statut_tache(tache_id):
     t = Tache.query.get_or_404(tache_id)
     nouveau_statut = request.form.get("statut", "a_faire")
+    ancien_statut = t.statut
     t.statut = nouveau_statut
+
     if nouveau_statut == "fait":
         t.date_realisation = date.today()
+        # Tâche récurrente : on programme automatiquement la prochaine échéance
+        # (uniquement au moment où elle passe réellement à "fait", pas à chaque clic).
+        if ancien_statut != "fait" and t.recurrence in RECURRENCE_DELTA:
+            base = t.date_prevue or date.today()
+            prochaine = base + RECURRENCE_DELTA[t.recurrence]
+            if prochaine < date.today():
+                prochaine = date.today() + RECURRENCE_DELTA[t.recurrence]
+            db.session.add(Tache(
+                titre=t.titre, description=t.description, categorie=t.categorie,
+                date_prevue=prochaine, recurrence=t.recurrence,
+                statut="a_faire", lot_id=t.lot_id, notes=t.notes,
+            ))
+            flash(f"Tâche récurrente : prochaine échéance programmée le {prochaine.strftime('%d/%m/%Y')}.", "info")
     else:
         t.date_realisation = None
+
     db.session.commit()
     return redirect(url_for("caille.taches"))
 
@@ -527,8 +626,11 @@ def api_stats_mortalite():
 
 
 # ---------------------------------------------------------------------------
-# RAPPORTS PDF
+# RAPPORTS (PDF + Excel)
 # ---------------------------------------------------------------------------
+XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
 @caille_bp.route("/rapports")
 def rapports():
     lots_tous = Lot.query.order_by(Lot.nom).all()
@@ -537,10 +639,10 @@ def rapports():
     return render_template("rapports.html", lots=lots_tous, date_debut=date_debut, date_fin=date_fin)
 
 
-@caille_bp.route("/rapports/ponte.pdf")
-def rapport_ponte_pdf():
-    date_debut = _parse_date(request.args.get("debut"), date.today() - timedelta(days=29))
-    date_fin = _parse_date(request.args.get("fin"), date.today())
+# ---- Fonctions internes de préparation des données (partagées PDF / Excel) ----
+def _donnees_ponte(debut_param, fin_param):
+    date_debut = _parse_date(debut_param, date.today() - timedelta(days=29))
+    date_fin = _parse_date(fin_param, date.today())
     entrees = SuiviPonte.query.filter(SuiviPonte.date_jour.between(date_debut, date_fin)) \
         .order_by(SuiviPonte.date_jour).all()
     totaux = {
@@ -549,104 +651,290 @@ def rapport_ponte_pdf():
         "casses": sum(e.oeufs_casses for e in entrees),
         "revenu": round(sum(e.montant_vente for e in entrees), 2),
     }
-    buf = reports.rapport_ponte(entrees, date_debut, date_fin, totaux)
-    return send_file(buf, mimetype="application/pdf", as_attachment=True,
-                      download_name=f"rapport_ponte_{date_debut}_{date_fin}.pdf")
+    return entrees, date_debut, date_fin, totaux
 
 
-@caille_bp.route("/rapports/mortalite.pdf")
-def rapport_mortalite_pdf():
-    date_debut = _parse_date(request.args.get("debut"), date.today() - timedelta(days=29))
-    date_fin = _parse_date(request.args.get("fin"), date.today())
+def _donnees_mortalite(debut_param, fin_param):
+    date_debut = _parse_date(debut_param, date.today() - timedelta(days=29))
+    date_fin = _parse_date(fin_param, date.today())
     entrees = SuiviMortalite.query.filter(SuiviMortalite.date_jour.between(date_debut, date_fin)) \
         .order_by(SuiviMortalite.date_jour).all()
     totaux = {
         "cailles": sum(e.cailles_mortes for e in entrees),
         "cailletons": sum(e.cailletons_morts for e in entrees),
     }
-    buf = reports.rapport_mortalite(entrees, date_debut, date_fin, totaux)
-    return send_file(buf, mimetype="application/pdf", as_attachment=True,
-                      download_name=f"rapport_mortalite_{date_debut}_{date_fin}.pdf")
+    return entrees, date_debut, date_fin, totaux
 
 
-@caille_bp.route("/rapports/achats.pdf")
-def rapport_achats_pdf():
-    date_debut = _parse_date(request.args.get("debut"), date.today() - timedelta(days=29))
-    date_fin = _parse_date(request.args.get("fin"), date.today())
+def _donnees_achats(debut_param, fin_param):
+    date_debut = _parse_date(debut_param, date.today() - timedelta(days=29))
+    date_fin = _parse_date(fin_param, date.today())
     achats = AchatProvende.query.filter(AchatProvende.date_achat.between(date_debut, date_fin)) \
         .order_by(AchatProvende.date_achat).all()
     totaux = {
         "kg": round(sum(a.quantite_kg for a in achats), 2),
         "cout": round(sum(a.prix_total or 0 for a in achats), 2),
     }
-    buf = reports.rapport_achats(achats, date_debut, date_fin, totaux)
-    return send_file(buf, mimetype="application/pdf", as_attachment=True,
-                      download_name=f"rapport_achats_provende_{date_debut}_{date_fin}.pdf")
+    return achats, date_debut, date_fin, totaux
 
 
-@caille_bp.route("/rapports/lot/<int:lot_id>.pdf")
-def rapport_lot_pdf(lot_id):
+def _donnees_naissances(debut_param, fin_param):
+    date_debut = _parse_date(debut_param, date.today() - timedelta(days=29))
+    date_fin = _parse_date(fin_param, date.today())
+    entrees = Naissance.query.filter(Naissance.date_jour.between(date_debut, date_fin)) \
+        .order_by(Naissance.date_jour).all()
+    total = sum(e.nombre_cailletons for e in entrees)
+    return entrees, date_debut, date_fin, total
+
+
+def _donnees_consommation(debut_param, fin_param):
+    date_debut = _parse_date(debut_param, date.today() - timedelta(days=29))
+    date_fin = _parse_date(fin_param, date.today())
+    entrees = ConsommationProvende.query.filter(ConsommationProvende.date_jour.between(date_debut, date_fin)) \
+        .order_by(ConsommationProvende.date_jour).all()
+    total_kg = round(sum(e.quantite_kg for e in entrees), 2)
+    return entrees, date_debut, date_fin, total_kg
+
+
+def _donnees_taches(filtre_statut):
+    query = Tache.query
+    if filtre_statut != "tous":
+        query = query.filter_by(statut=filtre_statut)
+    return query.order_by(Tache.date_prevue.asc().nullslast()).all()
+
+
+def _donnees_depenses(debut_param, fin_param):
+    date_debut = _parse_date(debut_param, date.today() - timedelta(days=29))
+    date_fin = _parse_date(fin_param, date.today())
+    entrees = Depense.query.filter(Depense.date_depense.between(date_debut, date_fin)) \
+        .order_by(Depense.date_depense).all()
+    total = round(sum(d.montant for d in entrees), 2)
+    return entrees, date_debut, date_fin, total
+
+
+def _donnees_lot(lot_id, debut_param, fin_param):
     lot = Lot.query.get_or_404(lot_id)
-    debut_param = request.args.get("debut")
-    fin_param = request.args.get("fin")
-
     pontes_q = lot.pontes.order_by(SuiviPonte.date_jour)
     mortalites_q = lot.mortalites.order_by(SuiviMortalite.date_jour)
     naissances_q = lot.naissances.order_by(Naissance.date_jour)
 
     if debut_param or fin_param:
-        # Bornes larges par défaut si une seule des deux dates est fournie,
-        # pour ne filtrer que sur celle qui a été renseignée.
         date_debut = _parse_date(debut_param, date(1900, 1, 1))
         date_fin = _parse_date(fin_param, date.today())
         pontes_q = pontes_q.filter(SuiviPonte.date_jour.between(date_debut, date_fin))
         mortalites_q = mortalites_q.filter(SuiviMortalite.date_jour.between(date_debut, date_fin))
         naissances_q = naissances_q.filter(Naissance.date_jour.between(date_debut, date_fin))
 
-    buf = reports.fiche_lot(lot, pontes_q.all(), mortalites_q.all(), naissances_q.all())
+    return lot, pontes_q.all(), mortalites_q.all(), naissances_q.all()
+
+
+# ---- Ponte ----
+@caille_bp.route("/rapports/ponte.pdf")
+def rapport_ponte_pdf():
+    entrees, date_debut, date_fin, totaux = _donnees_ponte(request.args.get("debut"), request.args.get("fin"))
+    buf = reports.rapport_ponte(entrees, date_debut, date_fin, totaux)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True,
+                      download_name=f"rapport_ponte_{date_debut}_{date_fin}.pdf")
+
+
+@caille_bp.route("/rapports/ponte.xlsx")
+def rapport_ponte_excel():
+    entrees, date_debut, date_fin, totaux = _donnees_ponte(request.args.get("debut"), request.args.get("fin"))
+    buf = excel_reports.excel_ponte(entrees, totaux)
+    return send_file(buf, mimetype=XLSX_MIME, as_attachment=True,
+                      download_name=f"rapport_ponte_{date_debut}_{date_fin}.xlsx")
+
+
+# ---- Mortalité ----
+@caille_bp.route("/rapports/mortalite.pdf")
+def rapport_mortalite_pdf():
+    entrees, date_debut, date_fin, totaux = _donnees_mortalite(request.args.get("debut"), request.args.get("fin"))
+    buf = reports.rapport_mortalite(entrees, date_debut, date_fin, totaux)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True,
+                      download_name=f"rapport_mortalite_{date_debut}_{date_fin}.pdf")
+
+
+@caille_bp.route("/rapports/mortalite.xlsx")
+def rapport_mortalite_excel():
+    entrees, date_debut, date_fin, totaux = _donnees_mortalite(request.args.get("debut"), request.args.get("fin"))
+    buf = excel_reports.excel_mortalite(entrees, totaux)
+    return send_file(buf, mimetype=XLSX_MIME, as_attachment=True,
+                      download_name=f"rapport_mortalite_{date_debut}_{date_fin}.xlsx")
+
+
+# ---- Achats de provende ----
+@caille_bp.route("/rapports/achats.pdf")
+def rapport_achats_pdf():
+    achats, date_debut, date_fin, totaux = _donnees_achats(request.args.get("debut"), request.args.get("fin"))
+    buf = reports.rapport_achats(achats, date_debut, date_fin, totaux)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True,
+                      download_name=f"rapport_achats_provende_{date_debut}_{date_fin}.pdf")
+
+
+@caille_bp.route("/rapports/achats.xlsx")
+def rapport_achats_excel():
+    achats, date_debut, date_fin, totaux = _donnees_achats(request.args.get("debut"), request.args.get("fin"))
+    buf = excel_reports.excel_achats(achats, totaux)
+    return send_file(buf, mimetype=XLSX_MIME, as_attachment=True,
+                      download_name=f"rapport_achats_provende_{date_debut}_{date_fin}.xlsx")
+
+
+# ---- Fiche d'un lot ----
+@caille_bp.route("/rapports/lot/<int:lot_id>.pdf")
+def rapport_lot_pdf(lot_id):
+    lot, pontes, mortalites, naissances = _donnees_lot(lot_id, request.args.get("debut"), request.args.get("fin"))
+    buf = reports.fiche_lot(lot, pontes, mortalites, naissances)
     return send_file(buf, mimetype="application/pdf", as_attachment=True,
                       download_name=f"fiche_{lot.nom}.pdf")
 
 
+@caille_bp.route("/rapports/lot/<int:lot_id>.xlsx")
+def rapport_lot_excel(lot_id):
+    lot, pontes, mortalites, naissances = _donnees_lot(lot_id, request.args.get("debut"), request.args.get("fin"))
+    buf = excel_reports.excel_lot(lot, pontes, mortalites, naissances)
+    return send_file(buf, mimetype=XLSX_MIME, as_attachment=True,
+                      download_name=f"fiche_{lot.nom}.xlsx")
+
+
+# ---- Naissances ----
 @caille_bp.route("/rapports/naissances.pdf")
 def rapport_naissances_pdf():
-    date_debut = _parse_date(request.args.get("debut"), date.today() - timedelta(days=29))
-    date_fin = _parse_date(request.args.get("fin"), date.today())
-    entrees = Naissance.query.filter(Naissance.date_jour.between(date_debut, date_fin)) \
-        .order_by(Naissance.date_jour).all()
-    total = sum(e.nombre_cailletons for e in entrees)
+    entrees, date_debut, date_fin, total = _donnees_naissances(request.args.get("debut"), request.args.get("fin"))
     buf = reports.rapport_naissances(entrees, date_debut, date_fin, total)
     return send_file(buf, mimetype="application/pdf", as_attachment=True,
                       download_name=f"rapport_naissances_{date_debut}_{date_fin}.pdf")
 
 
+@caille_bp.route("/rapports/naissances.xlsx")
+def rapport_naissances_excel():
+    entrees, date_debut, date_fin, total = _donnees_naissances(request.args.get("debut"), request.args.get("fin"))
+    buf = excel_reports.excel_naissances(entrees, total)
+    return send_file(buf, mimetype=XLSX_MIME, as_attachment=True,
+                      download_name=f"rapport_naissances_{date_debut}_{date_fin}.xlsx")
+
+
+# ---- Consommation de provende ----
 @caille_bp.route("/rapports/consommation.pdf")
 def rapport_consommation_pdf():
-    date_debut = _parse_date(request.args.get("debut"), date.today() - timedelta(days=29))
-    date_fin = _parse_date(request.args.get("fin"), date.today())
-    entrees = ConsommationProvende.query.filter(ConsommationProvende.date_jour.between(date_debut, date_fin)) \
-        .order_by(ConsommationProvende.date_jour).all()
-    total_kg = round(sum(e.quantite_kg for e in entrees), 2)
+    entrees, date_debut, date_fin, total_kg = _donnees_consommation(request.args.get("debut"), request.args.get("fin"))
     buf = reports.rapport_consommation(entrees, date_debut, date_fin, total_kg)
     return send_file(buf, mimetype="application/pdf", as_attachment=True,
                       download_name=f"rapport_consommation_{date_debut}_{date_fin}.pdf")
 
 
+@caille_bp.route("/rapports/consommation.xlsx")
+def rapport_consommation_excel():
+    entrees, date_debut, date_fin, total_kg = _donnees_consommation(request.args.get("debut"), request.args.get("fin"))
+    buf = excel_reports.excel_consommation(entrees, total_kg)
+    return send_file(buf, mimetype=XLSX_MIME, as_attachment=True,
+                      download_name=f"rapport_consommation_{date_debut}_{date_fin}.xlsx")
+
+
+# ---- Cahier de charges ----
 @caille_bp.route("/rapports/taches.pdf")
 def rapport_taches_pdf():
     filtre_statut = request.args.get("statut", "tous")
-    query = Tache.query
-    if filtre_statut != "tous":
-        query = query.filter_by(statut=filtre_statut)
-    taches_liste = query.order_by(Tache.date_prevue.asc().nullslast()).all()
+    taches_liste = _donnees_taches(filtre_statut)
     buf = reports.rapport_taches(taches_liste, filtre_statut)
     return send_file(buf, mimetype="application/pdf", as_attachment=True,
                       download_name=f"cahier_de_charges_{filtre_statut}.pdf")
 
 
+@caille_bp.route("/rapports/taches.xlsx")
+def rapport_taches_excel():
+    filtre_statut = request.args.get("statut", "tous")
+    taches_liste = _donnees_taches(filtre_statut)
+    buf = excel_reports.excel_taches(taches_liste)
+    return send_file(buf, mimetype=XLSX_MIME, as_attachment=True,
+                      download_name=f"cahier_de_charges_{filtre_statut}.xlsx")
+
+
+# ---- Fournisseurs ----
 @caille_bp.route("/rapports/fournisseurs.pdf")
 def rapport_fournisseurs_pdf():
     liste = Fournisseur.query.order_by(Fournisseur.nom).all()
     buf = reports.rapport_fournisseurs(liste)
     return send_file(buf, mimetype="application/pdf", as_attachment=True,
                       download_name="fournisseurs.pdf")
+
+
+@caille_bp.route("/rapports/fournisseurs.xlsx")
+def rapport_fournisseurs_excel():
+    liste = Fournisseur.query.order_by(Fournisseur.nom).all()
+    buf = excel_reports.excel_fournisseurs(liste)
+    return send_file(buf, mimetype=XLSX_MIME, as_attachment=True,
+                      download_name="fournisseurs.xlsx")
+
+
+# ---- Dépenses diverses ----
+@caille_bp.route("/rapports/depenses.pdf")
+def rapport_depenses_pdf():
+    entrees, date_debut, date_fin, total = _donnees_depenses(request.args.get("debut"), request.args.get("fin"))
+    buf = reports.rapport_depenses(entrees, date_debut, date_fin, total)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True,
+                      download_name=f"rapport_depenses_{date_debut}_{date_fin}.pdf")
+
+
+@caille_bp.route("/rapports/depenses.xlsx")
+def rapport_depenses_excel():
+    entrees, date_debut, date_fin, total = _donnees_depenses(request.args.get("debut"), request.args.get("fin"))
+    buf = excel_reports.excel_depenses(entrees, total)
+    return send_file(buf, mimetype=XLSX_MIME, as_attachment=True,
+                      download_name=f"rapport_depenses_{date_debut}_{date_fin}.xlsx")
+
+
+# ---------------------------------------------------------------------------
+# RENTABILITÉ (indice de consommation, revenu - coût provende)
+# ---------------------------------------------------------------------------
+def _donnees_rentabilite(debut_param, fin_param):
+    date_debut = _parse_date(debut_param, date.today() - timedelta(days=364))
+    date_fin = _parse_date(fin_param, date.today())
+
+    lots_tous = Lot.query.order_by(Lot.nom).all()
+
+    pontes = SuiviPonte.query.filter(SuiviPonte.date_jour.between(date_debut, date_fin)).all()
+    achats = AchatProvende.query.filter(AchatProvende.date_achat.between(date_debut, date_fin)).all()
+    depenses_periode = Depense.query.filter(Depense.date_depense.between(date_debut, date_fin)).all()
+
+    mensuel = {}
+    for p in pontes:
+        cle = p.date_jour.strftime("%Y-%m")
+        mensuel.setdefault(cle, {"revenu": 0.0, "cout_provende": 0.0, "depenses": 0.0})
+        mensuel[cle]["revenu"] += p.montant_vente
+    for a in achats:
+        cle = a.date_achat.strftime("%Y-%m")
+        mensuel.setdefault(cle, {"revenu": 0.0, "cout_provende": 0.0, "depenses": 0.0})
+        mensuel[cle]["cout_provende"] += (a.prix_total or 0)
+    for d in depenses_periode:
+        cle = d.date_depense.strftime("%Y-%m")
+        mensuel.setdefault(cle, {"revenu": 0.0, "cout_provende": 0.0, "depenses": 0.0})
+        mensuel[cle]["depenses"] += (d.montant or 0)
+
+    stats_mensuelles = []
+    for cle in sorted(mensuel.keys()):
+        r = round(mensuel[cle]["revenu"], 2)
+        cp = round(mensuel[cle]["cout_provende"], 2)
+        dep = round(mensuel[cle]["depenses"], 2)
+        stats_mensuelles.append({
+            "mois": cle, "revenu": r, "cout_provende": cp, "depenses": dep,
+            "marge": round(r - cp - dep, 2),
+        })
+
+    return lots_tous, stats_mensuelles, date_debut, date_fin
+
+
+@caille_bp.route("/rentabilite")
+def rentabilite():
+    lots_tous, stats_mensuelles, date_debut, date_fin = _donnees_rentabilite(
+        request.args.get("debut"), request.args.get("fin"))
+    return render_template("rentabilite.html", lots=lots_tous, stats_mensuelles=stats_mensuelles,
+                            date_debut=date_debut, date_fin=date_fin)
+
+
+@caille_bp.route("/rentabilite.xlsx")
+def rentabilite_excel():
+    lots_tous, stats_mensuelles, date_debut, date_fin = _donnees_rentabilite(
+        request.args.get("debut"), request.args.get("fin"))
+    buf = excel_reports.excel_rentabilite(lots_tous, stats_mensuelles)
+    return send_file(buf, mimetype=XLSX_MIME, as_attachment=True,
+                      download_name=f"rentabilite_{date_debut}_{date_fin}.xlsx")

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Rentabilité{% endblock %}
+{% block page_title %}Rentabilité{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('caille.rentabilite_excel', debut=date_debut, fin=date_fin) }}" class="btn btn-outline-success btn-sm">
+  <i class="bi bi-file-earmark-excel"></i> Export Excel
+</a>
+{% endblock %}
+
+{% block content %}
+<form class="row g-2 mb-3 align-items-end" method="get">
+  <div class="col-auto"><label class="form-label mb-0">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+  <div class="col-auto"><label class="form-label mb-0">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+  <div class="col-auto"><button class="btn btn-sm btn-outline-secondary">Filtrer</button></div>
+</form>
+
+<div class="card mb-4">
+  <div class="card-header"><i class="bi bi-grid-3x3-gap"></i> Rentabilité par lot (historique complet du lot)</div>
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>Lot</th><th>Œufs pondus</th><th>Revenu (F)</th><th>Provende consommée (kg)</th>
+          <th>Indice conso. (kg/œuf)</th><th>Coût provende estimé (F)</th>
+          <th>Autres dépenses (F)</th><th>Marge estimée (F)</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for lot in lots %}
+        <tr>
+          <td><a href="{{ url_for('caille.detail_lot', lot_id=lot.id) }}">{{ lot.nom }}</a></td>
+          <td>{{ lot.total_oeufs_pondus }}</td>
+          <td>{{ lot.total_revenu_oeufs }}</td>
+          <td>{{ lot.total_consommation_kg }}</td>
+          <td>{{ lot.indice_consommation if lot.indice_consommation is not none else '—' }}</td>
+          <td>{{ lot.cout_provende_estime }}</td>
+          <td>{{ lot.total_depenses }}</td>
+          <td class="{{ 'text-danger' if lot.marge_estimee < 0 else 'text-success' }} fw-bold">{{ lot.marge_estimee }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8" class="text-center text-muted py-4">Aucun lot.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer text-muted small">
+    L'indice de consommation (kg de provende / œuf produit) et le coût de provende sont estimés à partir du
+    prix d'achat moyen pondéré de chaque type de provende. « Autres dépenses » regroupe la vaccination, le
+    transport, le matériel, etc. saisis dans la page Dépenses. Plus l'indice est bas, plus l'élevage est efficace.
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><i class="bi bi-calendar-month"></i> Rentabilité par mois — revenu des ventes vs dépenses (provende + autres)</div>
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>Mois</th><th>Revenu œufs (F)</th><th>Coût provende achetée (F)</th><th>Autres dépenses (F)</th><th>Marge (F)</th></tr></thead>
+      <tbody>
+      {% for s in stats_mensuelles %}
+        <tr>
+          <td>{{ s.mois }}</td>
+          <td>{{ s.revenu }}</td>
+          <td>{{ s.cout_provende }}</td>
+          <td>{{ s.depenses }}</td>
+          <td class="{{ 'text-danger' if s.marge < 0 else 'text-success' }} fw-bold">{{ s.marge }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="text-center text-muted py-4">Aucune donnée sur cette période.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer text-muted small">
+    Vue de trésorerie : compare ce qui est encaissé (ventes d'œufs) et ce qui est dépensé (achats de provende +
+    autres dépenses) chaque mois — pas nécessairement lié aux mêmes lots ni à la provende réellement consommée
+    ce mois-là.
+  </div>
+</div>
+{% endblock %}
