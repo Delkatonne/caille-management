@@ -20,7 +20,7 @@
     <table class="table mb-0 align-middle">
       <thead>
         <tr>
-          <th>Lot</th><th>Œufs pondus</th><th>Revenu (F)</th><th>Provende consommée (kg)</th>
+          <th>Lot</th><th>Œufs pondus</th><th>Revenu œufs (F)</th><th>Autres ventes (F)</th><th>Provende consommée (kg)</th>
           <th>Indice conso. (kg/œuf)</th><th>Coût provende estimé (F)</th>
           <th>Autres dépenses (F)</th><th>Marge estimée (F)</th>
         </tr>
@@ -31,6 +31,7 @@
           <td><a href="{{ url_for('caille.detail_lot', lot_id=lot.id) }}">{{ lot.nom }}</a></td>
           <td>{{ lot.total_oeufs_pondus }}</td>
           <td>{{ lot.total_revenu_oeufs }}</td>
+          <td>{{ lot.total_revenu_ventes_diverses }}</td>
           <td>{{ lot.total_consommation_kg }}</td>
           <td>{{ lot.indice_consommation if lot.indice_consommation is not none else '—' }}</td>
           <td>{{ lot.cout_provende_estime }}</td>
@@ -38,7 +39,7 @@
           <td class="{{ 'text-danger' if lot.marge_estimee < 0 else 'text-success' }} fw-bold">{{ lot.marge_estimee }}</td>
         </tr>
       {% else %}
-        <tr><td colspan="8" class="text-center text-muted py-4">Aucun lot.</td></tr>
+        <tr><td colspan="9" class="text-center text-muted py-4">Aucun lot.</td></tr>
       {% endfor %}
       </tbody>
     </table>

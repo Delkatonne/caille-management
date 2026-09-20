@@ -21,7 +21,8 @@ from extensions import db, login_manager
 from models import (
     Lot, SuiviPonte, SuiviMortalite, Naissance,
     TypeProvende, Fournisseur, AchatProvende, ConsommationProvende,
-    Tache, Espece, Depense, stock_oeufs_actuel,
+    Tache, Espece, CategorieElevage, Depense, Employe, SoinSante, Client, Vente, PeseeCroissance,
+    stock_oeufs_actuel,
 )
 import reports
 import excel_reports
@@ -179,7 +180,10 @@ def detail_lot(lot_id):
     pontes = lot.pontes.order_by(SuiviPonte.date_jour.desc()).limit(30).all()
     mortalites = lot.mortalites.order_by(SuiviMortalite.date_jour.desc()).limit(30).all()
     naissances = lot.naissances.order_by(Naissance.date_jour.desc()).limit(30).all()
-    return render_template("lot_detail.html", lot=lot, pontes=pontes, mortalites=mortalites, naissances=naissances)
+    soins = SoinSante.query.filter_by(lot_id=lot.id).order_by(SoinSante.date_soin.desc()).limit(20).all()
+    pesees = PeseeCroissance.query.filter_by(lot_id=lot.id).order_by(PeseeCroissance.date_pesee.desc()).limit(20).all()
+    return render_template("lot_detail.html", lot=lot, pontes=pontes, mortalites=mortalites,
+                            naissances=naissances, soins=soins, pesees=pesees, types_soin=TYPES_SOIN)
 
 
 # ---------------------------------------------------------------------------
@@ -194,13 +198,241 @@ def especes():
         elif Espece.query.filter_by(nom=nom).first():
             flash(f"« {nom} » existe déjà.", "danger")
         else:
-            db.session.add(Espece(nom=nom, description=request.form.get("description")))
+            db.session.add(Espece(
+                nom=nom, categorie_id=_parse_int(request.form.get("categorie_id")) or None,
+                description=request.form.get("description"),
+            ))
             db.session.commit()
             flash(f"Espèce « {nom} » ajoutée. Vous pouvez maintenant créer des lots de ce type.", "success")
         return redirect(url_for("caille.especes"))
 
     liste = Espece.query.order_by(Espece.nom).all()
-    return render_template("especes.html", especes=liste)
+    categories = CategorieElevage.query.order_by(CategorieElevage.nom).all()
+    return render_template("especes.html", especes=liste, categories=categories)
+
+
+# ---------------------------------------------------------------------------
+# CATÉGORIES D'ÉLEVAGE (Aviculture, Cuniculture, ...)
+# ---------------------------------------------------------------------------
+@caille_bp.route("/categories-elevage", methods=["GET", "POST"])
+def categories_elevage():
+    if request.method == "POST":
+        nom = request.form.get("nom", "").strip()
+        if not nom:
+            flash("Le nom de la catégorie est obligatoire.", "danger")
+        elif CategorieElevage.query.filter_by(nom=nom).first():
+            flash(f"« {nom} » existe déjà.", "danger")
+        else:
+            db.session.add(CategorieElevage(nom=nom, description=request.form.get("description")))
+            db.session.commit()
+            flash(f"Catégorie « {nom} » ajoutée. Elle est disponible pour vos espèces.", "success")
+        return redirect(url_for("caille.categories_elevage"))
+
+    liste = CategorieElevage.query.order_by(CategorieElevage.nom).all()
+    return render_template("categories_elevage.html", categories=liste)
+
+
+# ---------------------------------------------------------------------------
+# PERSONNEL
+# ---------------------------------------------------------------------------
+@caille_bp.route("/personnel", methods=["GET", "POST"])
+def personnel():
+    if request.method == "POST":
+        e = Employe(
+            nom=request.form.get("nom", "").strip(),
+            role=request.form.get("role"),
+            telephone=request.form.get("telephone"),
+            date_embauche=_parse_date(request.form.get("date_embauche"), None) if request.form.get("date_embauche") else None,
+            notes=request.form.get("notes"),
+        )
+        if not e.nom:
+            flash("Le nom de l'employé est obligatoire.", "danger")
+        else:
+            db.session.add(e)
+            db.session.commit()
+            flash(f"Employé « {e.nom} » ajouté.", "success")
+        return redirect(url_for("caille.personnel"))
+
+    liste = Employe.query.order_by(Employe.statut.desc(), Employe.nom).all()
+    return render_template("personnel.html", employes=liste)
+
+
+@caille_bp.route("/personnel/<int:employe_id>/statut", methods=["POST"])
+def changer_statut_employe(employe_id):
+    e = Employe.query.get_or_404(employe_id)
+    e.statut = "inactif" if e.statut == "actif" else "actif"
+    db.session.commit()
+    flash(f"{e.nom} marqué « {e.statut} ».", "info")
+    return redirect(url_for("caille.personnel"))
+
+
+# ---------------------------------------------------------------------------
+# SUIVI SANITAIRE (vaccinations, traitements, maladies)
+# ---------------------------------------------------------------------------
+TYPES_SOIN = {
+    "vaccination": "Vaccination",
+    "traitement": "Traitement",
+    "maladie": "Maladie / diagnostic",
+    "visite_veterinaire": "Visite vétérinaire",
+}
+
+
+@caille_bp.route("/sante", methods=["GET", "POST"])
+def sante():
+    if request.method == "POST":
+        s = SoinSante(
+            lot_id=_parse_int(request.form.get("lot_id")),
+            date_soin=_parse_date(request.form.get("date_soin")),
+            type_soin=request.form.get("type_soin", "vaccination"),
+            produit=request.form.get("produit"),
+            employe_id=_parse_int(request.form.get("employe_id")) or None,
+            notes=request.form.get("notes"),
+        )
+        db.session.add(s)
+        db.session.commit()
+        flash("Soin de santé enregistré.", "success")
+        return redirect(url_for("caille.sante"))
+
+    date_debut = _parse_date(request.args.get("debut"), date.today() - timedelta(days=89))
+    date_fin = _parse_date(request.args.get("fin"), date.today())
+    entrees = SoinSante.query.filter(SoinSante.date_soin.between(date_debut, date_fin)) \
+        .order_by(SoinSante.date_soin.desc()).all()
+
+    lots_tous = Lot.query.filter(Lot.statut != "archive").order_by(Lot.nom).all()
+    employes_actifs = Employe.query.filter_by(statut="actif").order_by(Employe.nom).all()
+    return render_template(
+        "sante.html", entrees=entrees, lots=lots_tous, employes=employes_actifs,
+        types_soin=TYPES_SOIN, date_debut=date_debut, date_fin=date_fin,
+    )
+
+
+@caille_bp.route("/sante/<int:soin_id>/supprimer", methods=["POST"])
+def supprimer_soin(soin_id):
+    s = SoinSante.query.get_or_404(soin_id)
+    db.session.delete(s)
+    db.session.commit()
+    flash("Soin supprimé.", "info")
+    return redirect(url_for("caille.sante"))
+
+
+# ---------------------------------------------------------------------------
+# CLIENTS
+# ---------------------------------------------------------------------------
+@caille_bp.route("/clients", methods=["GET", "POST"])
+def clients():
+    if request.method == "POST":
+        c = Client(
+            nom=request.form.get("nom", "").strip(),
+            telephone=request.form.get("telephone"),
+            adresse=request.form.get("adresse"),
+            notes=request.form.get("notes"),
+        )
+        if not c.nom:
+            flash("Le nom du client est obligatoire.", "danger")
+        else:
+            db.session.add(c)
+            db.session.commit()
+            flash(f"Client « {c.nom} » ajouté.", "success")
+        return redirect(url_for("caille.clients"))
+
+    liste = Client.query.order_by(Client.nom).all()
+    return render_template("clients.html", clients=liste)
+
+
+# ---------------------------------------------------------------------------
+# VENTES (carnet de ventes général — cailles vivantes, viande, sous-produits...)
+# ---------------------------------------------------------------------------
+@caille_bp.route("/ventes", methods=["GET", "POST"])
+def ventes():
+    if request.method == "POST":
+        v = Vente(
+            date_vente=_parse_date(request.form.get("date_vente")),
+            client_id=_parse_int(request.form.get("client_id")) or None,
+            lot_id=_parse_int(request.form.get("lot_id")) or None,
+            produit=request.form.get("produit", "").strip(),
+            quantite=_parse_float(request.form.get("quantite")),
+            unite=request.form.get("unite", "unité"),
+            prix_unitaire=_parse_float(request.form.get("prix_unitaire")),
+            notes=request.form.get("notes"),
+        )
+        if not v.produit:
+            flash("Le produit vendu est obligatoire.", "danger")
+        else:
+            db.session.add(v)
+            db.session.commit()
+            flash(f"Vente de « {v.produit} » enregistrée ({v.montant_total} F).", "success")
+        return redirect(url_for("caille.ventes"))
+
+    date_debut = _parse_date(request.args.get("debut"), date.today() - timedelta(days=29))
+    date_fin = _parse_date(request.args.get("fin"), date.today())
+    entrees = Vente.query.filter(Vente.date_vente.between(date_debut, date_fin)) \
+        .order_by(Vente.date_vente.desc()).all()
+    total = round(sum(v.montant_total for v in entrees), 2)
+
+    clients_tous = Client.query.order_by(Client.nom).all()
+    lots_tous = Lot.query.filter(Lot.statut != "archive").order_by(Lot.nom).all()
+    return render_template(
+        "ventes.html", entrees=entrees, clients=clients_tous, lots=lots_tous,
+        total=total, date_debut=date_debut, date_fin=date_fin,
+    )
+
+
+@caille_bp.route("/ventes/<int:vente_id>/supprimer", methods=["POST"])
+def supprimer_vente(vente_id):
+    v = Vente.query.get_or_404(vente_id)
+    db.session.delete(v)
+    db.session.commit()
+    flash("Vente supprimée.", "info")
+    return redirect(url_for("caille.ventes"))
+
+
+# ---------------------------------------------------------------------------
+# CROISSANCE / POIDS (lots destinés à la viande)
+# ---------------------------------------------------------------------------
+@caille_bp.route("/croissance", methods=["GET", "POST"])
+def croissance():
+    if request.method == "POST":
+        p = PeseeCroissance(
+            lot_id=_parse_int(request.form.get("lot_id")),
+            date_pesee=_parse_date(request.form.get("date_pesee")),
+            poids_moyen_g=_parse_float(request.form.get("poids_moyen_g")),
+            nombre_pese=_parse_int(request.form.get("nombre_pese")) or None,
+            notes=request.form.get("notes"),
+        )
+        db.session.add(p)
+        db.session.commit()
+        flash("Pesée enregistrée.", "success")
+        return redirect(url_for("caille.croissance"))
+
+    lot_filtre = request.args.get("lot_id")
+    query = PeseeCroissance.query
+    if lot_filtre:
+        query = query.filter_by(lot_id=_parse_int(lot_filtre))
+    entrees = query.order_by(PeseeCroissance.date_pesee.desc()).limit(100).all()
+    lots_tous = Lot.query.filter(Lot.statut != "archive").order_by(Lot.nom).all()
+    return render_template("croissance.html", entrees=entrees, lots=lots_tous, lot_filtre=lot_filtre)
+
+
+@caille_bp.route("/croissance/<int:pesee_id>/supprimer", methods=["POST"])
+def supprimer_pesee(pesee_id):
+    p = PeseeCroissance.query.get_or_404(pesee_id)
+    db.session.delete(p)
+    db.session.commit()
+    flash("Pesée supprimée.", "info")
+    return redirect(url_for("caille.croissance"))
+
+
+@caille_bp.route("/api/stats/croissance")
+def api_stats_croissance():
+    lot_id = request.args.get("lot_id")
+    query = PeseeCroissance.query
+    if lot_id:
+        query = query.filter_by(lot_id=_parse_int(lot_id))
+    rows = query.order_by(PeseeCroissance.date_pesee).all()
+    return jsonify({
+        "labels": [r.date_pesee.strftime("%d/%m/%Y") for r in rows],
+        "poids": [r.poids_moyen_g for r in rows],
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -506,6 +738,7 @@ def taches():
             date_prevue=_parse_date(request.form.get("date_prevue"), None) if request.form.get("date_prevue") else None,
             recurrence=request.form.get("recurrence", "aucune"),
             lot_id=_parse_int(request.form.get("lot_id")) or None,
+            employe_id=_parse_int(request.form.get("employe_id")) or None,
             notes=request.form.get("notes"),
         )
         if not t.titre:
@@ -522,7 +755,8 @@ def taches():
         query = query.filter_by(statut=filtre_statut)
     liste = query.order_by(Tache.date_prevue.asc().nullslast()).all()
     lots_actifs = Lot.query.filter(Lot.statut != "archive").order_by(Lot.nom).all()
-    return render_template("taches.html", taches=liste, lots=lots_actifs, filtre_statut=filtre_statut)
+    employes_actifs = Employe.query.filter_by(statut="actif").order_by(Employe.nom).all()
+    return render_template("taches.html", taches=liste, lots=lots_actifs, employes=employes_actifs, filtre_statut=filtre_statut)
 
 
 RECURRENCE_DELTA = {
@@ -551,7 +785,7 @@ def changer_statut_tache(tache_id):
             db.session.add(Tache(
                 titre=t.titre, description=t.description, categorie=t.categorie,
                 date_prevue=prochaine, recurrence=t.recurrence,
-                statut="a_faire", lot_id=t.lot_id, notes=t.notes,
+                statut="a_faire", lot_id=t.lot_id, employe_id=t.employe_id, notes=t.notes,
             ))
             flash(f"Tâche récurrente : prochaine échéance programmée le {prochaine.strftime('%d/%m/%Y')}.", "info")
     else:
@@ -883,6 +1117,113 @@ def rapport_depenses_excel():
                       download_name=f"rapport_depenses_{date_debut}_{date_fin}.xlsx")
 
 
+# ---- Personnel ----
+@caille_bp.route("/rapports/personnel.pdf")
+def rapport_personnel_pdf():
+    liste = Employe.query.order_by(Employe.statut.desc(), Employe.nom).all()
+    buf = reports.rapport_personnel(liste)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True, download_name="personnel.pdf")
+
+
+@caille_bp.route("/rapports/personnel.xlsx")
+def rapport_personnel_excel():
+    liste = Employe.query.order_by(Employe.statut.desc(), Employe.nom).all()
+    buf = excel_reports.excel_personnel(liste)
+    return send_file(buf, mimetype=XLSX_MIME, as_attachment=True, download_name="personnel.xlsx")
+
+
+# ---- Santé ----
+def _donnees_sante(debut_param, fin_param):
+    date_debut = _parse_date(debut_param, date.today() - timedelta(days=89))
+    date_fin = _parse_date(fin_param, date.today())
+    entrees = SoinSante.query.filter(SoinSante.date_soin.between(date_debut, date_fin)) \
+        .order_by(SoinSante.date_soin).all()
+    return entrees, date_debut, date_fin
+
+
+@caille_bp.route("/rapports/sante.pdf")
+def rapport_sante_pdf():
+    entrees, date_debut, date_fin = _donnees_sante(request.args.get("debut"), request.args.get("fin"))
+    buf = reports.rapport_sante(entrees, date_debut, date_fin, TYPES_SOIN)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True,
+                      download_name=f"carnet_sante_{date_debut}_{date_fin}.pdf")
+
+
+@caille_bp.route("/rapports/sante.xlsx")
+def rapport_sante_excel():
+    entrees, date_debut, date_fin = _donnees_sante(request.args.get("debut"), request.args.get("fin"))
+    buf = excel_reports.excel_sante(entrees, TYPES_SOIN)
+    return send_file(buf, mimetype=XLSX_MIME, as_attachment=True,
+                      download_name=f"carnet_sante_{date_debut}_{date_fin}.xlsx")
+
+
+# ---- Clients ----
+@caille_bp.route("/rapports/clients.pdf")
+def rapport_clients_pdf():
+    liste = Client.query.order_by(Client.nom).all()
+    buf = reports.rapport_clients(liste)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True, download_name="clients.pdf")
+
+
+@caille_bp.route("/rapports/clients.xlsx")
+def rapport_clients_excel():
+    liste = Client.query.order_by(Client.nom).all()
+    buf = excel_reports.excel_clients(liste)
+    return send_file(buf, mimetype=XLSX_MIME, as_attachment=True, download_name="clients.xlsx")
+
+
+# ---- Ventes ----
+def _donnees_ventes(debut_param, fin_param):
+    date_debut = _parse_date(debut_param, date.today() - timedelta(days=29))
+    date_fin = _parse_date(fin_param, date.today())
+    entrees = Vente.query.filter(Vente.date_vente.between(date_debut, date_fin)) \
+        .order_by(Vente.date_vente).all()
+    total = round(sum(v.montant_total for v in entrees), 2)
+    return entrees, date_debut, date_fin, total
+
+
+@caille_bp.route("/rapports/ventes.pdf")
+def rapport_ventes_pdf():
+    entrees, date_debut, date_fin, total = _donnees_ventes(request.args.get("debut"), request.args.get("fin"))
+    buf = reports.rapport_ventes(entrees, date_debut, date_fin, total)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True,
+                      download_name=f"rapport_ventes_{date_debut}_{date_fin}.pdf")
+
+
+@caille_bp.route("/rapports/ventes.xlsx")
+def rapport_ventes_excel():
+    entrees, date_debut, date_fin, total = _donnees_ventes(request.args.get("debut"), request.args.get("fin"))
+    buf = excel_reports.excel_ventes(entrees, total)
+    return send_file(buf, mimetype=XLSX_MIME, as_attachment=True,
+                      download_name=f"rapport_ventes_{date_debut}_{date_fin}.xlsx")
+
+
+# ---- Croissance ----
+@caille_bp.route("/rapports/croissance.pdf")
+def rapport_croissance_pdf():
+    lot_id = request.args.get("lot_id")
+    query = PeseeCroissance.query
+    lot_nom = None
+    if lot_id:
+        query = query.filter_by(lot_id=_parse_int(lot_id))
+        lot = Lot.query.get(_parse_int(lot_id))
+        lot_nom = lot.nom if lot else None
+    entrees = query.order_by(PeseeCroissance.date_pesee).all()
+    buf = reports.rapport_croissance(entrees, lot_nom)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True, download_name="suivi_croissance.pdf")
+
+
+@caille_bp.route("/rapports/croissance.xlsx")
+def rapport_croissance_excel():
+    lot_id = request.args.get("lot_id")
+    query = PeseeCroissance.query
+    if lot_id:
+        query = query.filter_by(lot_id=_parse_int(lot_id))
+    entrees = query.order_by(PeseeCroissance.date_pesee).all()
+    buf = excel_reports.excel_croissance(entrees)
+    return send_file(buf, mimetype=XLSX_MIME, as_attachment=True, download_name="suivi_croissance.xlsx")
+
+
 # ---------------------------------------------------------------------------
 # RENTABILITÉ (indice de consommation, revenu - coût provende)
 # ---------------------------------------------------------------------------
@@ -893,6 +1234,7 @@ def _donnees_rentabilite(debut_param, fin_param):
     lots_tous = Lot.query.order_by(Lot.nom).all()
 
     pontes = SuiviPonte.query.filter(SuiviPonte.date_jour.between(date_debut, date_fin)).all()
+    ventes_periode = Vente.query.filter(Vente.date_vente.between(date_debut, date_fin)).all()
     achats = AchatProvende.query.filter(AchatProvende.date_achat.between(date_debut, date_fin)).all()
     depenses_periode = Depense.query.filter(Depense.date_depense.between(date_debut, date_fin)).all()
 
@@ -901,6 +1243,10 @@ def _donnees_rentabilite(debut_param, fin_param):
         cle = p.date_jour.strftime("%Y-%m")
         mensuel.setdefault(cle, {"revenu": 0.0, "cout_provende": 0.0, "depenses": 0.0})
         mensuel[cle]["revenu"] += p.montant_vente
+    for v in ventes_periode:
+        cle = v.date_vente.strftime("%Y-%m")
+        mensuel.setdefault(cle, {"revenu": 0.0, "cout_provende": 0.0, "depenses": 0.0})
+        mensuel[cle]["revenu"] += v.montant_total
     for a in achats:
         cle = a.date_achat.strftime("%Y-%m")
         mensuel.setdefault(cle, {"revenu": 0.0, "cout_provende": 0.0, "depenses": 0.0})

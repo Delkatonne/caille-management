@@ -198,6 +198,101 @@
       </div>
     </div>
   </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-heart-pulse"></i> Carnet de santé</div>
+      <div class="card-body">
+        <form method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+            <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+            <input type="date" class="form-control form-control-sm date-precise">
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('caille.rapport_sante_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('caille.rapport_sante_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-receipt"></i> Ventes</div>
+      <div class="card-body">
+        <form method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+            <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+            <input type="date" class="form-control form-control-sm date-precise">
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('caille.rapport_ventes_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('caille.rapport_ventes_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-graph-up-arrow"></i> Croissance / Poids</div>
+      <div class="card-body">
+        <label class="form-label small">Lot (optionnel)</label>
+        <select class="form-select form-select-sm mb-3" id="selectLotCroissance">
+          <option value="">Tous les lots</option>
+          {% for l in lots %}<option value="{{ l.id }}">{{ l.nom }}</option>{% endfor %}
+        </select>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-primary btn-sm" onclick="ouvrirCroissance('pdf')"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+          <button class="btn btn-outline-success btn-sm" onclick="ouvrirCroissance('xlsx')"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-people"></i> Personnel</div>
+      <div class="card-body">
+        <p class="text-muted small">Liste complète du personnel (actifs et inactifs).</p>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('caille.rapport_personnel_pdf') }}" target="_blank" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+          </a>
+          <a href="{{ url_for('caille.rapport_personnel_excel') }}" target="_blank" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-person-lines-fill"></i> Clients</div>
+      <div class="card-body">
+        <p class="text-muted small">Liste complète des clients enregistrés.</p>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('caille.rapport_clients_pdf') }}" target="_blank" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+          </a>
+          <a href="{{ url_for('caille.rapport_clients_excel') }}" target="_blank" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
@@ -227,6 +322,13 @@ function ouvrirFicheLot(format) {
   if (debut) params.push('debut=' + debut);
   if (fin) params.push('fin=' + fin);
   if (params.length) url += '?' + params.join('&');
+  window.open(url, '_blank');
+}
+
+function ouvrirCroissance(format) {
+  const lotId = document.getElementById('selectLotCroissance').value;
+  let url = `/caille/rapports/croissance.${format}`;
+  if (lotId) url += `?lot_id=${lotId}`;
   window.open(url, '_blank');
 }
 </script>

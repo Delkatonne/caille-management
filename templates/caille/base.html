@@ -42,6 +42,9 @@
       <a href="{{ url_for('caille.especes') }}" class="{{ 'active' if request.endpoint=='caille.especes' }}">
         <i class="bi bi-collection"></i> Espèces / Types d'élevage
       </a>
+      <a href="{{ url_for('caille.categories_elevage') }}" class="{{ 'active' if request.endpoint=='caille.categories_elevage' }}">
+        <i class="bi bi-diagram-3"></i> Catégories d'élevage
+      </a>
       <a href="{{ url_for('caille.ponte') }}" class="{{ 'active' if request.endpoint=='caille.ponte' }}">
         <i class="bi bi-egg"></i> Ponte &amp; ventes d'œufs
       </a>
@@ -50,6 +53,12 @@
       </a>
       <a href="{{ url_for('caille.naissances') }}" class="{{ 'active' if request.endpoint=='caille.naissances' }}">
         <i class="bi bi-flower1"></i> Naissances (cailletons)
+      </a>
+      <a href="{{ url_for('caille.croissance') }}" class="{{ 'active' if request.endpoint=='caille.croissance' }}">
+        <i class="bi bi-graph-up-arrow"></i> Croissance / Poids
+      </a>
+      <a href="{{ url_for('caille.sante') }}" class="{{ 'active' if request.endpoint=='caille.sante' }}">
+        <i class="bi bi-heart-pulse"></i> Santé
       </a>
       <div class="sidebar-group">Provende</div>
       <a href="{{ url_for('caille.types_provende') }}" class="{{ 'active' if request.endpoint=='caille.types_provende' }}">
@@ -64,12 +73,23 @@
       <a href="{{ url_for('caille.fournisseurs') }}" class="{{ 'active' if request.endpoint=='caille.fournisseurs' }}">
         <i class="bi bi-truck"></i> Fournisseurs
       </a>
+      <div class="sidebar-group">Commercial</div>
+      <a href="{{ url_for('caille.clients') }}" class="{{ 'active' if request.endpoint=='caille.clients' }}">
+        <i class="bi bi-person-lines-fill"></i> Clients
+      </a>
+      <a href="{{ url_for('caille.ventes') }}" class="{{ 'active' if request.endpoint=='caille.ventes' }}">
+        <i class="bi bi-receipt"></i> Ventes
+      </a>
       <div class="sidebar-group">Finances</div>
       <a href="{{ url_for('caille.depenses') }}" class="{{ 'active' if request.endpoint=='caille.depenses' }}">
         <i class="bi bi-wallet2"></i> Dépenses
       </a>
       <a href="{{ url_for('caille.rentabilite') }}" class="{{ 'active' if request.endpoint=='caille.rentabilite' }}">
         <i class="bi bi-cash-coin"></i> Rentabilité
+      </a>
+      <div class="sidebar-group">Équipe</div>
+      <a href="{{ url_for('caille.personnel') }}" class="{{ 'active' if request.endpoint=='caille.personnel' }}">
+        <i class="bi bi-people"></i> Personnel
       </a>
       <div class="sidebar-group">Suivi</div>
       <a href="{{ url_for('caille.taches') }}" class="{{ 'active' if request.endpoint=='caille.taches' }}">

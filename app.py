@@ -40,6 +40,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        _seed_categories_si_vide()
         _seed_especes_si_vide()
         _seed_types_provende_si_vide()
         _seed_admin_si_vide()
@@ -53,13 +54,27 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
+def _seed_categories_si_vide():
+    """Crée la catégorie « Aviculture » par défaut si aucune n'existe encore.
+    D'autres catégories (Cuniculture, Porciculture, ...) peuvent être ajoutées
+    librement depuis l'interface (page Catégories d'élevage)."""
+    from models import CategorieElevage
+    if CategorieElevage.query.count() == 0:
+        db.session.add(CategorieElevage(nom="Aviculture", description="Élevage d'oiseaux (cailles, poules, canards...)"))
+        db.session.commit()
+
+
 def _seed_especes_si_vide():
     """Crée l'espèce « Caille » par défaut si aucune n'existe encore.
     D'autres espèces (Poule, Lapin, ...) peuvent être ajoutées depuis
     l'interface (page Espèces / Types d'élevage)."""
-    from models import Espece
+    from models import Espece, CategorieElevage
     if Espece.query.count() == 0:
-        db.session.add(Espece(nom="Caille", description="Élevage de cailles (ponte / chair)"))
+        aviculture = CategorieElevage.query.filter_by(nom="Aviculture").first()
+        db.session.add(Espece(
+            nom="Caille", description="Élevage de cailles (ponte / chair)",
+            categorie_id=aviculture.id if aviculture else None,
+        ))
         db.session.commit()
 
 

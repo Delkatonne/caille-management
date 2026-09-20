@@ -153,12 +153,12 @@ def excel_rentabilite(lots, stats_mensuelles):
     wb = Workbook()
     ws_lots = wb.active
     ws_lots.title = "Par lot"
-    lignes = [[l.nom, l.total_oeufs_pondus, l.total_revenu_oeufs, l.total_consommation_kg,
-               l.indice_consommation if l.indice_consommation is not None else "—",
+    lignes = [[l.nom, l.total_oeufs_pondus, l.total_revenu_oeufs, l.total_revenu_ventes_diverses,
+               l.total_consommation_kg, l.indice_consommation if l.indice_consommation is not None else "—",
                l.cout_provende_estime, l.total_depenses, l.marge_estimee] for l in lots]
-    _remplir_feuille(ws_lots, ["Lot", "Œufs pondus", "Revenu (F)", "Provende consommée (kg)",
-                                "Indice conso. (kg/œuf)", "Coût provende estimé (F)",
-                                "Autres dépenses (F)", "Marge estimée (F)"], lignes)
+    _remplir_feuille(ws_lots, ["Lot", "Œufs pondus", "Revenu œufs (F)", "Autres ventes (F)",
+                                "Provende consommée (kg)", "Indice conso. (kg/œuf)",
+                                "Coût provende estimé (F)", "Autres dépenses (F)", "Marge estimée (F)"], lignes)
 
     ws_mois = wb.create_sheet("Par mois")
     lignes_mois = [[s["mois"], s["revenu"], s["cout_provende"], s["depenses"], s["marge"]] for s in stats_mensuelles]
@@ -173,4 +173,43 @@ def excel_depenses(entrees, total):
     lignes = [[d.date_depense, d.categorie, d.lot.nom if d.lot else "—", d.montant, d.notes or ""] for d in entrees]
     total_row = ["", "", "TOTAL", total, ""]
     _remplir_feuille(ws, ["Date", "Catégorie", "Lot", "Montant (F)", "Notes"], lignes, total_row)
+    return _vers_bytes(wb)
+
+
+def excel_personnel(employes):
+    wb, ws = _nouveau_classeur("Personnel")
+    lignes = [[e.nom, e.role or "—", e.telephone or "—",
+               e.date_embauche, "Actif" if e.statut == "actif" else "Inactif"] for e in employes]
+    _remplir_feuille(ws, ["Nom", "Rôle", "Téléphone", "Embauché le", "Statut"], lignes)
+    return _vers_bytes(wb)
+
+
+def excel_sante(entrees, libelles_type):
+    wb, ws = _nouveau_classeur("Santé")
+    lignes = [[s.date_soin, s.lot.nom, libelles_type.get(s.type_soin, s.type_soin),
+               s.produit or "—", s.employe.nom if s.employe else "—", s.notes or ""] for s in entrees]
+    _remplir_feuille(ws, ["Date", "Lot", "Type", "Produit", "Réalisé par", "Notes"], lignes)
+    return _vers_bytes(wb)
+
+
+def excel_clients(clients):
+    wb, ws = _nouveau_classeur("Clients")
+    lignes = [[c.nom, c.telephone or "—", c.adresse or "—", c.notes or ""] for c in clients]
+    _remplir_feuille(ws, ["Nom", "Téléphone", "Adresse", "Notes"], lignes)
+    return _vers_bytes(wb)
+
+
+def excel_ventes(entrees, total):
+    wb, ws = _nouveau_classeur("Ventes")
+    lignes = [[v.date_vente, v.client.nom if v.client else "—", v.produit,
+               v.quantite, v.unite, v.prix_unitaire, v.montant_total] for v in entrees]
+    total_row = ["", "", "", "", "", "TOTAL", total]
+    _remplir_feuille(ws, ["Date", "Client", "Produit", "Qté", "Unité", "Prix/u (F)", "Montant (F)"], lignes, total_row)
+    return _vers_bytes(wb)
+
+
+def excel_croissance(entrees):
+    wb, ws = _nouveau_classeur("Croissance")
+    lignes = [[p.date_pesee, p.lot.nom if p.lot else "—", p.poids_moyen_g, p.nombre_pese or "—", p.notes or ""] for p in entrees]
+    _remplir_feuille(ws, ["Date", "Lot", "Poids moyen (g)", "Échantillon", "Notes"], lignes)
     return _vers_bytes(wb)

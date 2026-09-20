@@ -34,13 +34,27 @@ class User(UserMixin, db.Model):
 # ---------------------------------------------------------------------------
 # LOTS (bandes de cailles)
 # ---------------------------------------------------------------------------
+class CategorieElevage(db.Model):
+    """Catégorie d'élevage (Aviculture, Cuniculture, ...). Librement extensible :
+    l'utilisateur peut ajouter ses propres catégories depuis l'interface."""
+    __tablename__ = "caille_categories_elevage"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nom = db.Column(db.String(80), nullable=False, unique=True)
+    description = db.Column(db.Text, nullable=True)
+
+    especes = db.relationship("Espece", backref="categorie", lazy="dynamic")
+
+
 class Espece(db.Model):
-    """Type d'élevage géré (Caille, Poule, Lapin, ...). Permet d'ajouter
-    facilement d'autres sujets gérés que la caille, sans changer le modèle."""
+    """Type d'élevage géré (Caille, Poule, Lapin, ...), rattaché à une
+    catégorie (Aviculture, Cuniculture, ...). Permet d'ajouter facilement
+    d'autres sujets gérés que la caille, sans changer le modèle."""
     __tablename__ = "caille_especes"
 
     id = db.Column(db.Integer, primary_key=True)
     nom = db.Column(db.String(80), nullable=False, unique=True)
+    categorie_id = db.Column(db.Integer, db.ForeignKey("caille_categories_elevage.id"), nullable=True)
     description = db.Column(db.Text, nullable=True)
 
     lots = db.relationship("Lot", backref="espece", lazy="dynamic")
@@ -132,11 +146,17 @@ class Lot(db.Model):
                      .filter(Depense.lot_id == self.id).scalar(), 2)
 
     @property
+    def total_revenu_ventes_diverses(self):
+        """Revenu des ventes hors œufs liées à ce lot (cailles vivantes, viande...)."""
+        rows = Vente.query.filter_by(lot_id=self.id).all()
+        return round(sum(v.montant_total for v in rows), 2)
+
+    @property
     def marge_estimee(self):
-        """Revenu des ventes d'œufs moins le coût estimé de la provende consommée
-        et les autres dépenses (vaccination, médicament, transport...) du lot."""
-        return round((self.total_revenu_oeufs or 0) - (self.cout_provende_estime or 0)
-                     - (self.total_depenses or 0), 2)
+        """Revenu total (œufs + autres ventes) moins le coût estimé de la provende
+        consommée et les autres dépenses (vaccination, médicament, transport...) du lot."""
+        revenu_total = (self.total_revenu_oeufs or 0) + (self.total_revenu_ventes_diverses or 0)
+        return round(revenu_total - (self.cout_provende_estime or 0) - (self.total_depenses or 0), 2)
 
 
 # ---------------------------------------------------------------------------
@@ -304,6 +324,7 @@ class Tache(db.Model):
     recurrence = db.Column(db.String(20), nullable=True, default="aucune")  # aucune, quotidien, hebdo, mensuel
     statut = db.Column(db.String(20), nullable=False, default="a_faire")  # a_faire, en_cours, fait
     lot_id = db.Column(db.Integer, db.ForeignKey("caille_lots.id"), nullable=True)
+    employe_id = db.Column(db.Integer, db.ForeignKey("caille_employes.id"), nullable=True)
     notes = db.Column(db.Text, nullable=True)
 
 
@@ -322,3 +343,95 @@ class Depense(db.Model):
     montant = db.Column(db.Float, nullable=False, default=0)
     lot_id = db.Column(db.Integer, db.ForeignKey("caille_lots.id"), nullable=True)
     notes = db.Column(db.Text, nullable=True)
+
+
+# ---------------------------------------------------------------------------
+# PERSONNEL
+# ---------------------------------------------------------------------------
+class Employe(db.Model):
+    __tablename__ = "caille_employes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nom = db.Column(db.String(120), nullable=False)
+    role = db.Column(db.String(80), nullable=True)  # Soigneur, Vétérinaire, Vendeur, Gérant...
+    telephone = db.Column(db.String(40), nullable=True)
+    date_embauche = db.Column(db.Date, nullable=True)
+    statut = db.Column(db.String(20), nullable=False, default="actif")  # actif, inactif
+    notes = db.Column(db.Text, nullable=True)
+
+    taches = db.relationship("Tache", backref="employe", lazy="dynamic")
+    soins = db.relationship("SoinSante", backref="employe", lazy="dynamic")
+
+
+# ---------------------------------------------------------------------------
+# SUIVI SANITAIRE (vaccinations, traitements, maladies)
+# ---------------------------------------------------------------------------
+class SoinSante(db.Model):
+    """Carnet de santé structuré par lot — distinct du cahier de charges
+    (Tache), qui sert à planifier plutôt qu'à tracer un historique clinique."""
+    __tablename__ = "caille_soins_sante"
+
+    id = db.Column(db.Integer, primary_key=True)
+    lot_id = db.Column(db.Integer, db.ForeignKey("caille_lots.id"), nullable=False)
+    date_soin = db.Column(db.Date, nullable=False, default=date.today)
+    type_soin = db.Column(db.String(30), nullable=False, default="vaccination")
+    # vaccination, traitement, maladie, visite_veterinaire
+    produit = db.Column(db.String(150), nullable=True)  # nom du vaccin / médicament
+    employe_id = db.Column(db.Integer, db.ForeignKey("caille_employes.id"), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+
+    lot = db.relationship("Lot", backref="soins_sante")
+
+
+# ---------------------------------------------------------------------------
+# CLIENTS & VENTES (carnet clients, hors vente rapide d'œufs)
+# ---------------------------------------------------------------------------
+class Client(db.Model):
+    __tablename__ = "caille_clients"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nom = db.Column(db.String(150), nullable=False)
+    telephone = db.Column(db.String(40), nullable=True)
+    adresse = db.Column(db.String(200), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+
+    ventes = db.relationship("Vente", backref="client", lazy="dynamic")
+
+
+class Vente(db.Model):
+    """Carnet de ventes général (cailles vivantes, viande, sous-produits...),
+    lié à un client. Distinct de la vente rapide d'œufs suivie dans SuiviPonte,
+    qui reste le journal quotidien simplifié de la ponte."""
+    __tablename__ = "caille_ventes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    date_vente = db.Column(db.Date, nullable=False, default=date.today)
+    client_id = db.Column(db.Integer, db.ForeignKey("caille_clients.id"), nullable=True)
+    lot_id = db.Column(db.Integer, db.ForeignKey("caille_lots.id"), nullable=True)
+    produit = db.Column(db.String(150), nullable=False)  # Cailles vivantes, Viande, Œufs...
+    quantite = db.Column(db.Float, nullable=False, default=0)
+    unite = db.Column(db.String(30), nullable=False, default="unité")
+    prix_unitaire = db.Column(db.Float, nullable=False, default=0)
+    notes = db.Column(db.Text, nullable=True)
+
+    lot = db.relationship("Lot", backref="ventes")
+
+    @property
+    def montant_total(self):
+        return round((self.quantite or 0) * (self.prix_unitaire or 0), 2)
+
+
+# ---------------------------------------------------------------------------
+# CROISSANCE / POIDS (lots destinés à la viande)
+# ---------------------------------------------------------------------------
+class PeseeCroissance(db.Model):
+    __tablename__ = "caille_pesees"
+
+    id = db.Column(db.Integer, primary_key=True)
+    lot_id = db.Column(db.Integer, db.ForeignKey("caille_lots.id"), nullable=False)
+    date_pesee = db.Column(db.Date, nullable=False, default=date.today)
+    poids_moyen_g = db.Column(db.Float, nullable=False)
+    nombre_pese = db.Column(db.Integer, nullable=True)  # taille de l'échantillon pesé
+    notes = db.Column(db.Text, nullable=True)
+
+    lot = db.relationship("Lot", backref="pesees")

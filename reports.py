@@ -307,3 +307,126 @@ def rapport_depenses(entrees, date_debut, date_fin, total):
     doc.build(elements)
     buffer.seek(0)
     return buffer
+
+
+def rapport_personnel(employes):
+    buffer = io.BytesIO()
+    doc, elements, styles = _doc(buffer, "Liste du personnel")
+
+    data = [["Nom", "Rôle", "Téléphone", "Embauché le", "Statut"]]
+    for e in employes:
+        data.append([
+            e.nom, e.role or "—", e.telephone or "—",
+            e.date_embauche.strftime("%d/%m/%Y") if e.date_embauche else "—",
+            "Actif" if e.statut == "actif" else "Inactif",
+        ])
+
+    if len(data) == 1:
+        elements.append(Paragraph("Aucun employé enregistré.", styles["Normal"]))
+    else:
+        t = Table(data, repeatRows=1)
+        t.setStyle(_table_style(len(data[0]), total_row=False))
+        elements.append(t)
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+
+def rapport_sante(entrees, date_debut, date_fin, libelles_type):
+    buffer = io.BytesIO()
+    doc, elements, styles = _doc(buffer, "Carnet de santé")
+    elements.append(Paragraph(
+        f"Période : {date_debut.strftime('%d/%m/%Y')} au {date_fin.strftime('%d/%m/%Y')}",
+        styles["Normal"]))
+    elements.append(Spacer(1, 0.4 * cm))
+
+    data = [["Date", "Lot", "Type", "Produit", "Réalisé par", "Notes"]]
+    for s in entrees:
+        data.append([
+            s.date_soin.strftime("%d/%m/%Y"), s.lot.nom, libelles_type.get(s.type_soin, s.type_soin),
+            s.produit or "—", s.employe.nom if s.employe else "—", s.notes or "",
+        ])
+
+    if len(data) == 1:
+        elements.append(Paragraph("Aucun soin sur cette période.", styles["Normal"]))
+    else:
+        t = Table(data, repeatRows=1)
+        t.setStyle(_table_style(len(data[0]), total_row=False))
+        elements.append(t)
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+
+def rapport_clients(clients):
+    buffer = io.BytesIO()
+    doc, elements, styles = _doc(buffer, "Carnet clients")
+
+    data = [["Nom", "Téléphone", "Adresse", "Notes"]]
+    for c in clients:
+        data.append([c.nom, c.telephone or "—", c.adresse or "—", c.notes or ""])
+
+    if len(data) == 1:
+        elements.append(Paragraph("Aucun client enregistré.", styles["Normal"]))
+    else:
+        t = Table(data, repeatRows=1)
+        t.setStyle(_table_style(len(data[0]), total_row=False))
+        elements.append(t)
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+
+def rapport_ventes(entrees, date_debut, date_fin, total):
+    buffer = io.BytesIO()
+    doc, elements, styles = _doc(buffer, "Carnet de ventes")
+    elements.append(Paragraph(
+        f"Période : {date_debut.strftime('%d/%m/%Y')} au {date_fin.strftime('%d/%m/%Y')}",
+        styles["Normal"]))
+    elements.append(Spacer(1, 0.4 * cm))
+
+    data = [["Date", "Client", "Produit", "Qté", "Unité", "Prix/u (F)", "Montant (F)"]]
+    for v in entrees:
+        data.append([
+            v.date_vente.strftime("%d/%m/%Y"), v.client.nom if v.client else "—", v.produit,
+            v.quantite, v.unite, v.prix_unitaire, v.montant_total,
+        ])
+    data.append(["", "", "", "", "", "TOTAL", total])
+
+    if len(data) == 2:
+        elements.append(Paragraph("Aucune vente sur cette période.", styles["Normal"]))
+    else:
+        t = Table(data, repeatRows=1)
+        t.setStyle(_table_style(len(data[0])))
+        elements.append(t)
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+
+def rapport_croissance(entrees, lot_nom):
+    buffer = io.BytesIO()
+    titre = f"Suivi de croissance — {lot_nom}" if lot_nom else "Suivi de croissance — tous les lots"
+    doc, elements, styles = _doc(buffer, titre)
+
+    data = [["Date", "Lot", "Poids moyen (g)", "Échantillon", "Notes"]]
+    for p in entrees:
+        data.append([
+            p.date_pesee.strftime("%d/%m/%Y"), p.lot.nom if p.lot else "—", p.poids_moyen_g,
+            p.nombre_pese or "—", p.notes or "",
+        ])
+
+    if len(data) == 1:
+        elements.append(Paragraph("Aucune pesée enregistrée.", styles["Normal"]))
+    else:
+        t = Table(data, repeatRows=1)
+        t.setStyle(_table_style(len(data[0]), total_row=False))
+        elements.append(t)
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
