@@ -12,7 +12,6 @@ body {
 
 .caille-sidebar {
   width: 230px;
-  min-height: 100vh;
   background: var(--caille-primary-dark);
   color: #f5ead9;
   padding: 1rem 0;
@@ -135,6 +134,41 @@ body {
 .caille-sidebar .offcanvas-header {
   border-bottom: 1px solid rgba(255,255,255,.15);
   padding: 1rem 1.2rem;
+}
+
+/* Sidebar défilable en interne (son propre scroller), en PC comme en mobile,
+   pour que "Déconnexion" et le bas du menu restent toujours atteignables
+   même quand la liste de liens dépasse la hauteur de l'écran. */
+.caille-sidebar.offcanvas-md {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.35) transparent;
+}
+.caille-sidebar.offcanvas-md::-webkit-scrollbar { width: 7px; }
+.caille-sidebar.offcanvas-md::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,.35);
+  border-radius: 4px;
+}
+
+@media (min-width: 768px) {
+  .caille-sidebar.offcanvas-md {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .caille-sidebar.offcanvas-md .offcanvas-body {
+    overflow-y: visible; /* le parent .caille-sidebar gère le défilement */
+    min-height: min-content;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .caille-sidebar.offcanvas-md {
+    overflow-y: auto;
+  }
+  .caille-sidebar.offcanvas-md .offcanvas-body {
+    overflow-y: auto !important;
+  }
 }
 
 @media (max-width: 767.98px) {
