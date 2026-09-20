@@ -20,8 +20,8 @@
     <table class="table mb-0 align-middle">
       <thead>
         <tr>
-          <th>Lot</th><th>Œufs pondus</th><th>Revenu œufs (F)</th><th>Autres ventes (F)</th><th>Provende consommée (kg)</th>
-          <th>Indice conso. (kg/œuf)</th><th>Coût provende estimé (F)</th>
+          <th>Lot</th><th>Œufs pondus</th><th>Revenu œufs (F)</th><th>Autres ventes (F)</th><th>Alimentation consommée (kg)</th>
+          <th>Indice conso. (kg/œuf)</th><th>Coût alimentation estimé (F)</th>
           <th>Autres dépenses (F)</th><th>Marge estimée (F)</th>
         </tr>
       </thead>
@@ -45,17 +45,17 @@
     </table>
   </div>
   <div class="card-footer text-muted small">
-    L'indice de consommation (kg de provende / œuf produit) et le coût de provende sont estimés à partir du
-    prix d'achat moyen pondéré de chaque type de provende. « Autres dépenses » regroupe la vaccination, le
+    L'indice de consommation (kg d'alimentation / œuf produit) et son coût sont estimés à partir du
+    prix d'achat moyen pondéré de chaque type d'alimentation. « Autres dépenses » regroupe la vaccination, le
     transport, le matériel, etc. saisis dans la page Dépenses. Plus l'indice est bas, plus l'élevage est efficace.
   </div>
 </div>
 
 <div class="card">
-  <div class="card-header"><i class="bi bi-calendar-month"></i> Rentabilité par mois — revenu des ventes vs dépenses (provende + autres)</div>
+  <div class="card-header"><i class="bi bi-calendar-month"></i> Rentabilité par mois — revenu des ventes vs dépenses (alimentation + autres)</div>
   <div class="card-body p-0">
     <table class="table mb-0 align-middle">
-      <thead><tr><th>Mois</th><th>Revenu œufs (F)</th><th>Coût provende achetée (F)</th><th>Autres dépenses (F)</th><th>Marge (F)</th></tr></thead>
+      <thead><tr><th>Mois</th><th>Revenu œufs (F)</th><th>Coût alimentation achetée (F)</th><th>Autres dépenses (F)</th><th>Marge (F)</th></tr></thead>
       <tbody>
       {% for s in stats_mensuelles %}
         <tr>
@@ -72,8 +72,8 @@
     </table>
   </div>
   <div class="card-footer text-muted small">
-    Vue de trésorerie : compare ce qui est encaissé (ventes d'œufs) et ce qui est dépensé (achats de provende +
-    autres dépenses) chaque mois — pas nécessairement lié aux mêmes lots ni à la provende réellement consommée
+    Vue de trésorerie : compare ce qui est encaissé (ventes d'œufs et autres) et ce qui est dépensé (achats d'alimentation +
+    autres dépenses) chaque mois — pas nécessairement lié aux mêmes lots ni à l'alimentation réellement consommée
     ce mois-là.
   </div>
 </div>

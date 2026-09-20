@@ -7,7 +7,7 @@
   <div class="col-6 col-md-3">
     <div class="kpi-card">
       <div class="kpi-value">{{ effectif_total }}</div>
-      <div class="kpi-label">Cailles en élevage ({{ nb_lots_actifs }} lot(s) actif(s))</div>
+      <div class="kpi-label">Animaux en élevage ({{ nb_lots_actifs }} lot(s) actif(s))</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
@@ -31,7 +31,7 @@
   <div class="col-6 col-md-3">
     <div class="kpi-card {{ 'alerte' if (cailles_mortes_jour + cailletons_morts_jour) > 0 }}">
       <div class="kpi-value">{{ cailles_mortes_jour }} / {{ cailletons_morts_jour }}</div>
-      <div class="kpi-label">Morts aujourd'hui (cailles / cailletons)</div>
+      <div class="kpi-label">Morts aujourd'hui (adultes / jeunes)</div>
     </div>
   </div>
 </div>
@@ -40,7 +40,7 @@
   <div class="col-md-6">
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-basket"></i> Stock de provende</span>
+        <span><i class="bi bi-basket"></i> Stock d'alimentation</span>
         <a href="{{ url_for('caille.achats_provende') }}" class="btn btn-sm btn-outline-primary">Enregistrer un achat</a>
       </div>
       <div class="card-body p-0">
@@ -55,7 +55,7 @@
               <td>{% if t.en_alerte %}<span class="badge bg-danger">Réapprovisionner</span>{% else %}<span class="badge bg-success">OK</span>{% endif %}</td>
             </tr>
           {% else %}
-            <tr><td colspan="4" class="text-center text-muted py-3">Aucun type de provende défini. <a href="{{ url_for('caille.types_provende') }}">En ajouter un</a>.</td></tr>
+            <tr><td colspan="4" class="text-center text-muted py-3">Aucun type d'alimentation défini. <a href="{{ url_for('caille.types_provende') }}">En ajouter un</a>.</td></tr>
           {% endfor %}
           </tbody>
         </table>

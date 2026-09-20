@@ -22,7 +22,7 @@
 </div>
 
 <div class="card">
-  <div class="card-header"><i class="bi bi-exclamation-triangle"></i> Mortalité — cailles vs cailletons</div>
+  <div class="card-header"><i class="bi bi-exclamation-triangle"></i> Mortalité — adultes vs jeunes</div>
   <div class="card-body"><canvas id="chartMortalite" height="90"></canvas></div>
 </div>
 {% endblock %}
@@ -66,8 +66,8 @@ async function chargerGraphiques() {
     data: {
       labels: mort.labels,
       datasets: [
-        { label: 'Cailles', data: mort.cailles, backgroundColor: '#dc3545' },
-        { label: 'Cailletons', data: mort.cailletons, backgroundColor: '#fd7e14' },
+        { label: 'Adultes', data: mort.cailles, backgroundColor: '#dc3545' },
+        { label: 'Jeunes', data: mort.cailletons, backgroundColor: '#fd7e14' },
       ]
     },
     options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } }

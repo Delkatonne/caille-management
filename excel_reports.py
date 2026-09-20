@@ -62,7 +62,7 @@ def excel_mortalite(entrees, totaux):
     wb, ws = _nouveau_classeur("Mortalité")
     lignes = [[e.date_jour, e.lot.nom, e.cailles_mortes, e.cailletons_morts, e.cause or "", e.notes or ""] for e in entrees]
     total = ["", "TOTAL", totaux["cailles"], totaux["cailletons"], "", ""]
-    _remplir_feuille(ws, ["Date", "Lot", "Cailles mortes", "Cailletons morts", "Cause", "Notes"], lignes, total)
+    _remplir_feuille(ws, ["Date", "Lot", "Adultes morts", "Jeunes morts", "Cause", "Notes"], lignes, total)
     return _vers_bytes(wb)
 
 
@@ -76,7 +76,7 @@ def excel_naissances(entrees, total):
 
 
 def excel_achats(achats, totaux):
-    wb, ws = _nouveau_classeur("Achats provende")
+    wb, ws = _nouveau_classeur("Achats alimentation")
     lignes = [[a.date_achat, a.type_provende.nom, a.fournisseur.nom if a.fournisseur else "—",
                a.quantite_kg, a.prix_total, a.prix_unitaire_kg] for a in achats]
     total = ["", "TOTAL", "", totaux["kg"], totaux["cout"], ""]
@@ -118,11 +118,11 @@ def excel_lot(lot, pontes, mortalites, naissances):
         ["Mise en place", lot.date_mise_en_place], ["Effectif initial", lot.effectif_initial],
         ["Effectif actuel", lot.effectif_actuel], ["Statut", lot.statut],
         ["Œufs pondus (total)", lot.total_oeufs_pondus], ["Revenu œufs (total, F)", lot.total_revenu_oeufs],
-        ["Mortalité cailles (total)", lot.total_mortalite_cailles],
-        ["Mortalité cailletons (total)", lot.total_mortalite_cailletons],
-        ["Provende consommée (kg)", lot.total_consommation_kg],
-        ["Indice de consommation (kg/œuf)", lot.indice_consommation if lot.indice_consommation is not None else "—"],
-        ["Coût provende estimé (F)", lot.cout_provende_estime],
+        ["Mortalité adultes (total)", lot.total_mortalite_cailles],
+        ["Mortalité jeunes (total)", lot.total_mortalite_cailletons],
+        ["Alimentation consommée (kg)", lot.total_consommation_kg],
+        ["Indice de consommation (kg alimentation/œuf)", lot.indice_consommation if lot.indice_consommation is not None else "—"],
+        ["Coût alimentation estimé (F)", lot.cout_provende_estime],
         ["Marge estimée (F)", lot.marge_estimee],
     ]
     for ligne in infos:
@@ -139,7 +139,7 @@ def excel_lot(lot, pontes, mortalites, naissances):
                       [[p.date_jour, p.oeufs_pondus, p.oeufs_vendus, p.montant_vente] for p in pontes])
 
     ws_m = wb.create_sheet("Mortalité")
-    _remplir_feuille(ws_m, ["Date", "Cailles", "Cailletons", "Cause"],
+    _remplir_feuille(ws_m, ["Date", "Adultes", "Jeunes", "Cause"],
                       [[m.date_jour, m.cailles_mortes, m.cailletons_morts, m.cause or ""] for m in mortalites])
 
     ws_n = wb.create_sheet("Naissances")
@@ -157,12 +157,12 @@ def excel_rentabilite(lots, stats_mensuelles):
                l.total_consommation_kg, l.indice_consommation if l.indice_consommation is not None else "—",
                l.cout_provende_estime, l.total_depenses, l.marge_estimee] for l in lots]
     _remplir_feuille(ws_lots, ["Lot", "Œufs pondus", "Revenu œufs (F)", "Autres ventes (F)",
-                                "Provende consommée (kg)", "Indice conso. (kg/œuf)",
-                                "Coût provende estimé (F)", "Autres dépenses (F)", "Marge estimée (F)"], lignes)
+                                "Alimentation consommée (kg)", "Indice conso. (kg/œuf)",
+                                "Coût alimentation estimé (F)", "Autres dépenses (F)", "Marge estimée (F)"], lignes)
 
     ws_mois = wb.create_sheet("Par mois")
     lignes_mois = [[s["mois"], s["revenu"], s["cout_provende"], s["depenses"], s["marge"]] for s in stats_mensuelles]
-    _remplir_feuille(ws_mois, ["Mois", "Revenu œufs (F)", "Coût provende achetée (F)",
+    _remplir_feuille(ws_mois, ["Mois", "Revenu œufs (F)", "Coût alimentation achetée (F)",
                                 "Autres dépenses (F)", "Marge (F)"], lignes_mois)
 
     return _vers_bytes(wb)

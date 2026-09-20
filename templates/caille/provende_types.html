@@ -1,15 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Types de provende{% endblock %}
-{% block page_title %}Types de provende{% endblock %}
+{% block title %}Types d'alimentation{% endblock %}
+{% block page_title %}Types d'alimentation{% endblock %}
 {% block page_actions %}
 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalType"><i class="bi bi-plus-lg"></i> Nouveau type</button>
 {% endblock %}
 
 {% block content %}
 <div class="alert alert-secondary">
-  <strong>Repères courants pour la caille :</strong> Démarrage (0–3 semaines, ~28% protéines),
-  Croissance (3–6 semaines, ~22% protéines), Ponte (dès la ponte, ~20% protéines + calcium).
-  Adaptez selon les recommandations de votre fournisseur/vétérinaire.
+  <strong>Un type par aliment, quelle que soit l'espèce :</strong> pour les volailles, par exemple
+  Démarrage / Croissance / Ponte ; pour les lapins, du foin ou des granulés ; etc. Adaptez selon
+  les recommandations de votre fournisseur/vétérinaire pour chaque espèce élevée.
 </div>
 
 <div class="card">
@@ -35,7 +35,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="6" class="text-center text-muted py-4">Aucun type de provende. Ajoutez « Démarrage », « Croissance » et « Ponte » pour commencer.</td></tr>
+        <tr><td colspan="6" class="text-center text-muted py-4">Aucun type d'alimentation. Ajoutez-en un pour chaque espèce élevée (ex : « Démarrage caille », « Foin lapin »).</td></tr>
       {% endfor %}
       </tbody>
     </table>
@@ -45,7 +45,7 @@
 <div class="modal fade" id="modalType" tabindex="-1">
   <div class="modal-dialog">
     <form class="modal-content" action="{{ url_for('caille.types_provende') }}" method="post">
-      <div class="modal-header"><h5 class="modal-title">Nouveau type de provende</h5>
+      <div class="modal-header"><h5 class="modal-title">Nouveau type d'alimentation</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body">
         <div class="mb-2"><label class="form-label">Nom</label>

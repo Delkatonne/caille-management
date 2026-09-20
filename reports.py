@@ -80,7 +80,7 @@ def rapport_mortalite(entrees, date_debut, date_fin, totaux):
         styles["Normal"]))
     elements.append(Spacer(1, 0.4 * cm))
 
-    data = [["Date", "Lot", "Cailles mortes", "Cailletons morts", "Cause", "Notes"]]
+    data = [["Date", "Lot", "Adultes morts", "Jeunes morts", "Cause", "Notes"]]
     for e in entrees:
         data.append([
             e.date_jour.strftime("%d/%m/%Y"), e.lot.nom, e.cailles_mortes,
@@ -102,7 +102,7 @@ def rapport_mortalite(entrees, date_debut, date_fin, totaux):
 
 def rapport_achats(achats, date_debut, date_fin, totaux):
     buffer = io.BytesIO()
-    doc, elements, styles = _doc(buffer, "Rapport des achats de provende")
+    doc, elements, styles = _doc(buffer, "Rapport des achats d'alimentation")
     elements.append(Paragraph(
         f"Période : {date_debut.strftime('%d/%m/%Y')} au {date_fin.strftime('%d/%m/%Y')}",
         styles["Normal"]))
@@ -141,8 +141,8 @@ def fiche_lot(lot, pontes, mortalites, naissances):
         ["Statut", lot.statut],
         ["Œufs pondus (total)", str(lot.total_oeufs_pondus)],
         ["Revenu œufs (total)", f"{lot.total_revenu_oeufs} F"],
-        ["Mortalité cailles (total)", str(lot.total_mortalite_cailles)],
-        ["Mortalité cailletons (total)", str(lot.total_mortalite_cailletons)],
+        ["Mortalité adultes (total)", str(lot.total_mortalite_cailles)],
+        ["Mortalité jeunes (total)", str(lot.total_mortalite_cailletons)],
     ]
     t_info = Table(infos, colWidths=[6 * cm, 8 * cm])
     t_info.setStyle(TableStyle([
@@ -167,7 +167,7 @@ def fiche_lot(lot, pontes, mortalites, naissances):
 
     sous_tableau("Ponte & ventes", ["Date", "Pondus", "Vendus", "Montant (F)"],
                  [[p.date_jour.strftime("%d/%m/%Y"), p.oeufs_pondus, p.oeufs_vendus, p.montant_vente] for p in pontes])
-    sous_tableau("Mortalité", ["Date", "Cailles", "Cailletons", "Cause"],
+    sous_tableau("Mortalité", ["Date", "Adultes", "Jeunes", "Cause"],
                  [[m.date_jour.strftime("%d/%m/%Y"), m.cailles_mortes, m.cailletons_morts, m.cause or ""] for m in mortalites])
     sous_tableau("Naissances", ["Date", "Nombre", "Origine"],
                  [[n.date_jour.strftime("%d/%m/%Y"), n.nombre_cailletons, n.origine] for n in naissances])
@@ -179,7 +179,7 @@ def fiche_lot(lot, pontes, mortalites, naissances):
 
 def rapport_naissances(entrees, date_debut, date_fin, total):
     buffer = io.BytesIO()
-    doc, elements, styles = _doc(buffer, "Rapport des naissances de cailletons")
+    doc, elements, styles = _doc(buffer, "Rapport des naissances")
     elements.append(Paragraph(
         f"Période : {date_debut.strftime('%d/%m/%Y')} au {date_fin.strftime('%d/%m/%Y')}",
         styles["Normal"]))
@@ -207,7 +207,7 @@ def rapport_naissances(entrees, date_debut, date_fin, total):
 
 def rapport_consommation(entrees, date_debut, date_fin, total_kg):
     buffer = io.BytesIO()
-    doc, elements, styles = _doc(buffer, "Rapport de consommation de provende")
+    doc, elements, styles = _doc(buffer, "Rapport de consommation d'alimentation")
     elements.append(Paragraph(
         f"Période : {date_debut.strftime('%d/%m/%Y')} au {date_fin.strftime('%d/%m/%Y')}",
         styles["Normal"]))

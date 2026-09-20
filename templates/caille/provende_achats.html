@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Achats de provende{% endblock %}
-{% block page_title %}Achats de provende (réapprovisionnement){% endblock %}
+{% block title %}Achats d'alimentation{% endblock %}
+{% block page_title %}Achats d'alimentation (réapprovisionnement){% endblock %}
 {% block page_actions %}
 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAchat"><i class="bi bi-plus-lg"></i> Nouvel achat</button>
 {% endblock %}
@@ -18,7 +18,7 @@
 </div>
 
 {% if not types %}
-<div class="alert alert-warning">Créez d'abord un <a href="{{ url_for('caille.types_provende') }}">type de provende</a> avant d'enregistrer un achat.</div>
+<div class="alert alert-warning">Créez d'abord un <a href="{{ url_for('caille.types_provende') }}">type d'alimentation</a> avant d'enregistrer un achat.</div>
 {% endif %}
 
 <div class="card">
@@ -47,12 +47,12 @@
 <div class="modal fade" id="modalAchat" tabindex="-1">
   <div class="modal-dialog">
     <form class="modal-content" action="{{ url_for('caille.achats_provende') }}" method="post">
-      <div class="modal-header"><h5 class="modal-title">Nouvel achat de provende</h5>
+      <div class="modal-header"><h5 class="modal-title">Nouvel achat d'alimentation</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body">
         <div class="mb-2"><label class="form-label">Date</label>
           <input type="date" class="form-control" name="date_achat" value="{{ date_fin }}" required></div>
-        <div class="mb-2"><label class="form-label">Type de provende</label>
+        <div class="mb-2"><label class="form-label">Type d'alimentation</label>
           <select class="form-select" name="type_provende_id" required>
             {% for t in types %}<option value="{{ t.id }}">{{ t.nom }}</option>{% endfor %}
           </select></div>

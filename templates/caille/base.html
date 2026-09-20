@@ -52,7 +52,7 @@
         <i class="bi bi-exclamation-triangle"></i> Mortalité
       </a>
       <a href="{{ url_for('caille.naissances') }}" class="{{ 'active' if request.endpoint=='caille.naissances' }}">
-        <i class="bi bi-flower1"></i> Naissances (cailletons)
+        <i class="bi bi-flower1"></i> Naissances
       </a>
       <a href="{{ url_for('caille.croissance') }}" class="{{ 'active' if request.endpoint=='caille.croissance' }}">
         <i class="bi bi-graph-up-arrow"></i> Croissance / Poids
@@ -60,9 +60,9 @@
       <a href="{{ url_for('caille.sante') }}" class="{{ 'active' if request.endpoint=='caille.sante' }}">
         <i class="bi bi-heart-pulse"></i> Santé
       </a>
-      <div class="sidebar-group">Provende</div>
+      <div class="sidebar-group">Alimentation</div>
       <a href="{{ url_for('caille.types_provende') }}" class="{{ 'active' if request.endpoint=='caille.types_provende' }}">
-        <i class="bi bi-tags"></i> Types de provende
+        <i class="bi bi-tags"></i> Types d'alimentation
       </a>
       <a href="{{ url_for('caille.achats_provende') }}" class="{{ 'active' if request.endpoint=='caille.achats_provende' }}">
         <i class="bi bi-cart-plus"></i> Achats / réappro.

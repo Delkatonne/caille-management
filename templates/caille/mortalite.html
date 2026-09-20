@@ -13,14 +13,14 @@
 </form>
 
 <div class="row g-3 mb-3">
-  <div class="col-6 col-md-3"><div class="kpi-card alerte"><div class="kpi-value">{{ totaux.cailles }}</div><div class="kpi-label">Cailles adultes mortes (période)</div></div></div>
-  <div class="col-6 col-md-3"><div class="kpi-card alerte"><div class="kpi-value">{{ totaux.cailletons }}</div><div class="kpi-label">Cailletons morts (période)</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi-card alerte"><div class="kpi-value">{{ totaux.cailles }}</div><div class="kpi-label">Adultes morts (période)</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi-card alerte"><div class="kpi-value">{{ totaux.cailletons }}</div><div class="kpi-label">Jeunes morts (période)</div></div></div>
 </div>
 
 <div class="card">
   <div class="card-body p-0">
     <table class="table mb-0 align-middle">
-      <thead><tr><th>Date</th><th>Lot</th><th>Cailles mortes</th><th>Cailletons morts</th><th>Cause</th><th>Notes</th></tr></thead>
+      <thead><tr><th>Date</th><th>Lot</th><th>Adultes morts</th><th>Jeunes morts</th><th>Cause</th><th>Notes</th></tr></thead>
       <tbody>
       {% for e in entrees %}
         <tr>
@@ -52,8 +52,8 @@
         <div class="mb-2"><label class="form-label">Date</label>
           <input type="date" class="form-control" name="date_jour" value="{{ date_fin }}" required></div>
         <div class="row">
-          <div class="col-6 mb-2"><label class="form-label">Cailles mortes (adultes)</label><input type="number" min="0" class="form-control" name="cailles_mortes" value="0"></div>
-          <div class="col-6 mb-2"><label class="form-label">Cailletons morts</label><input type="number" min="0" class="form-control" name="cailletons_morts" value="0"></div>
+          <div class="col-6 mb-2"><label class="form-label">Adultes morts</label><input type="number" min="0" class="form-control" name="cailles_mortes" value="0"></div>
+          <div class="col-6 mb-2"><label class="form-label">Jeunes morts</label><input type="number" min="0" class="form-control" name="cailletons_morts" value="0"></div>
         </div>
         <div class="mb-2"><label class="form-label">Cause probable</label><input class="form-control" name="cause" placeholder="Maladie, chaleur, étouffement..."></div>
         <div class="mb-2"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="2"></textarea></div>

@@ -12,11 +12,11 @@
   <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-value">{{ lot.total_revenu_oeufs }} F</div><div class="kpi-label">Revenu œufs (total)</div></div></div>
   <div class="col-6 col-md-3"><div class="kpi-card {{ 'alerte' if (lot.total_mortalite_cailles + lot.total_mortalite_cailletons) > 0 }}">
     <div class="kpi-value">{{ lot.total_mortalite_cailles }} / {{ lot.total_mortalite_cailletons }}</div>
-    <div class="kpi-label">Morts total (cailles / cailletons)</div></div></div>
+    <div class="kpi-label">Morts total (adultes / jeunes)</div></div></div>
 </div>
 <div class="row g-3 mb-4">
-  <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-value">{{ lot.indice_consommation if lot.indice_consommation is not none else '—' }}</div><div class="kpi-label">Indice conso. (kg provende/œuf)</div></div></div>
-  <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-value">{{ lot.cout_provende_estime }} F</div><div class="kpi-label">Coût provende estimé</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-value">{{ lot.indice_consommation if lot.indice_consommation is not none else '—' }}</div><div class="kpi-label">Indice conso. (kg alimentation/œuf)</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-value">{{ lot.cout_provende_estime }} F</div><div class="kpi-label">Coût alimentation estimé</div></div></div>
   <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-value">{{ lot.total_depenses }} F</div><div class="kpi-label">Autres dépenses</div></div></div>
   <div class="col-6 col-md-3"><div class="kpi-card {{ 'alerte' if lot.marge_estimee < 0 }}"><div class="kpi-value">{{ lot.marge_estimee }} F</div><div class="kpi-label">Marge estimée</div></div></div>
 </div>
@@ -38,7 +38,7 @@
     <div class="card">
       <div class="card-header">Mortalité — 30 derniers jours</div>
       <table class="table table-sm mb-0">
-        <thead><tr><th>Date</th><th>Cailles</th><th>Cailletons</th></tr></thead>
+        <thead><tr><th>Date</th><th>Adultes</th><th>Jeunes</th></tr></thead>
         <tbody>
         {% for m in mortalites %}<tr><td>{{ m.date_jour.strftime('%d/%m') }}</td><td>{{ m.cailles_mortes }}</td><td>{{ m.cailletons_morts }}</td></tr>
         {% else %}<tr><td colspan="3" class="text-center text-muted py-3">Aucune donnée</td></tr>{% endfor %}
