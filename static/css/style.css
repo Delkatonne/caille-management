@@ -27,6 +27,41 @@ body {
 }
 .sidebar-brand span { color: var(--caille-accent); }
 
+/* ---- Logo : la taille est fixée ici (l'image source fait 715 x 715 px) ---- */
+.brand-logo {
+  display: inline-block;
+  width: 36px;
+  height: 36px;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  vertical-align: middle;
+  margin-right: .5rem;
+  flex-shrink: 0;
+}
+.sidebar-brand,
+.sidebar-brand-mobile,
+.mobile-topbar-title { white-space: nowrap; }
+.mobile-topbar-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mobile-topbar .brand-logo { width: 32px; height: 32px; }
+
+/* Page de connexion : logo plus grand, qui s'adapte à la largeur de l'écran */
+.brand-logo-login {
+  display: block;
+  width: clamp(80px, 26vw, 120px);
+  height: auto;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto .6rem;
+  border-radius: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+}
+
+@media (max-width: 360px) {
+  .mobile-topbar { padding: .6rem .75rem; gap: .5rem; }
+  .mobile-topbar .brand-logo { width: 28px; height: 28px; margin-right: .35rem; }
+  .mobile-topbar-title { font-size: .95rem; }
+}
+
 .caille-sidebar a {
   display: flex;
   align-items: center;
