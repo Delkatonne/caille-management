@@ -80,7 +80,7 @@ def dashboard():
     today = date.today()
     ponte_jour = SuiviPonte.query.filter_by(date_jour=today).all()
     oeufs_pondus_jour = sum(p.oeufs_pondus for p in ponte_jour)
-    oeufs_vendus_jour = sum(p.oeufs_vendus for p in ponte_jour)
+    oeufs_vendus_jour = sum(p.oeufs_vendus_total for p in ponte_jour)
     revenu_jour = round(sum(p.montant_vente for p in ponte_jour), 2)
 
     mortalite_jour = SuiviMortalite.query.filter_by(date_jour=today).all()
@@ -211,6 +211,41 @@ def especes():
     return render_template("especes.html", especes=liste, categories=categories)
 
 
+@caille_bp.route("/especes/<int:espece_id>")
+def detail_espece(espece_id):
+    """Fiche par animal : regroupe naissances, croissance, mortalité, ponte
+    (si applicable) et santé pour tous les lots de cette espèce."""
+    espece = Espece.query.get_or_404(espece_id)
+    lots_espece = espece.lots.order_by(Lot.date_mise_en_place.desc()).all()
+    lot_ids = [l.id for l in lots_espece]
+
+    pond_des_oeufs = bool(espece.categorie and espece.categorie.produit_des_oeufs)
+
+    effectif_total = sum(l.effectif_actuel for l in lots_espece if l.statut == "actif")
+    mortalite_adultes = sum(l.total_mortalite_cailles for l in lots_espece)
+    mortalite_jeunes = sum(l.total_mortalite_cailletons for l in lots_espece)
+    naissances_total = sum(l.total_naissances for l in lots_espece)
+    oeufs_pondus_total = sum(l.total_oeufs_pondus for l in lots_espece)
+    revenu_total = round(sum(l.total_revenu_oeufs + l.total_revenu_ventes_diverses for l in lots_espece), 2)
+    cout_provende_total = round(sum(l.cout_provende_estime for l in lots_espece), 2)
+    depenses_total = round(sum(l.total_depenses for l in lots_espece), 2)
+    marge_total = round(sum(l.marge_estimee for l in lots_espece), 2)
+
+    soins_recents = SoinSante.query.filter(SoinSante.lot_id.in_(lot_ids)) \
+        .order_by(SoinSante.date_soin.desc()).limit(10).all() if lot_ids else []
+    pesees_recentes = PeseeCroissance.query.filter(PeseeCroissance.lot_id.in_(lot_ids)) \
+        .order_by(PeseeCroissance.date_pesee.desc()).limit(10).all() if lot_ids else []
+
+    return render_template(
+        "espece_detail.html", espece=espece, lots=lots_espece, pond_des_oeufs=pond_des_oeufs,
+        effectif_total=effectif_total, mortalite_adultes=mortalite_adultes, mortalite_jeunes=mortalite_jeunes,
+        naissances_total=naissances_total, oeufs_pondus_total=oeufs_pondus_total,
+        revenu_total=revenu_total, cout_provende_total=cout_provende_total,
+        depenses_total=depenses_total, marge_total=marge_total,
+        soins_recents=soins_recents, pesees_recentes=pesees_recentes, types_soin=TYPES_SOIN,
+    )
+
+
 # ---------------------------------------------------------------------------
 # CATÉGORIES D'ÉLEVAGE (Aviculture, Cuniculture, ...)
 # ---------------------------------------------------------------------------
@@ -223,13 +258,25 @@ def categories_elevage():
         elif CategorieElevage.query.filter_by(nom=nom).first():
             flash(f"« {nom} » existe déjà.", "danger")
         else:
-            db.session.add(CategorieElevage(nom=nom, description=request.form.get("description")))
+            db.session.add(CategorieElevage(
+                nom=nom, description=request.form.get("description"),
+                produit_des_oeufs=bool(request.form.get("produit_des_oeufs")),
+            ))
             db.session.commit()
             flash(f"Catégorie « {nom} » ajoutée. Elle est disponible pour vos espèces.", "success")
         return redirect(url_for("caille.categories_elevage"))
 
     liste = CategorieElevage.query.order_by(CategorieElevage.nom).all()
     return render_template("categories_elevage.html", categories=liste)
+
+
+@caille_bp.route("/categories-elevage/<int:categorie_id>/oeufs", methods=["POST"])
+def basculer_produit_des_oeufs(categorie_id):
+    c = CategorieElevage.query.get_or_404(categorie_id)
+    c.produit_des_oeufs = not c.produit_des_oeufs
+    db.session.commit()
+    flash(f"« {c.nom} » {'produit' if c.produit_des_oeufs else 'ne produit plus'} des œufs (page Ponte).", "info")
+    return redirect(url_for("caille.categories_elevage"))
 
 
 # ---------------------------------------------------------------------------
@@ -440,8 +487,17 @@ def api_stats_croissance():
 # ---------------------------------------------------------------------------
 @caille_bp.route("/ponte", methods=["GET", "POST"])
 def ponte():
+    lots_pondeurs = Lot.query.join(Espece, Lot.espece_id == Espece.id) \
+        .join(CategorieElevage, Espece.categorie_id == CategorieElevage.id) \
+        .filter(Lot.statut != "archive", CategorieElevage.produit_des_oeufs.is_(True)) \
+        .order_by(Lot.nom).all()
+    ids_lots_pondeurs = {l.id for l in lots_pondeurs}
+
     if request.method == "POST":
         lot_id = _parse_int(request.form.get("lot_id"))
+        if lot_id not in ids_lots_pondeurs:
+            flash("Ce lot n'appartient pas à une espèce productrice d'œufs (voir Catégories d'élevage).", "danger")
+            return redirect(url_for("caille.ponte"))
         date_jour = _parse_date(request.form.get("date_jour"))
         entree = SuiviPonte.query.filter_by(lot_id=lot_id, date_jour=date_jour).first()
         if entree is None:
@@ -450,6 +506,8 @@ def ponte():
         entree.oeufs_pondus = _parse_int(request.form.get("oeufs_pondus"))
         entree.oeufs_vendus = _parse_int(request.form.get("oeufs_vendus"))
         entree.prix_unitaire_vente = _parse_float(request.form.get("prix_unitaire_vente"))
+        entree.plateaux_vendus = _parse_int(request.form.get("plateaux_vendus"))
+        entree.prix_plateau_vente = _parse_float(request.form.get("prix_plateau_vente"))
         entree.oeufs_casses = _parse_int(request.form.get("oeufs_casses"))
         entree.oeufs_autoconsommes = _parse_int(request.form.get("oeufs_autoconsommes"))
         entree.notes = request.form.get("notes")
@@ -463,20 +521,23 @@ def ponte():
     lot_filtre = request.args.get("lot_id")
     if lot_filtre:
         query = query.filter_by(lot_id=_parse_int(lot_filtre))
+    elif ids_lots_pondeurs:
+        query = query.filter(SuiviPonte.lot_id.in_(ids_lots_pondeurs))
+    else:
+        query = query.filter(SuiviPonte.id == -1)  # aucun lot pondeur -> aucun résultat
     entrees = query.order_by(SuiviPonte.date_jour.desc()).all()
 
     totaux = {
         "pondus": sum(e.oeufs_pondus for e in entrees),
-        "vendus": sum(e.oeufs_vendus for e in entrees),
+        "vendus": sum(e.oeufs_vendus_total for e in entrees),
         "casses": sum(e.oeufs_casses for e in entrees),
         "revenu": round(sum(e.montant_vente for e in entrees), 2),
     }
 
-    lots_actifs = Lot.query.filter(Lot.statut != "archive").order_by(Lot.nom).all()
     return render_template(
-        "ponte.html", entrees=entrees, lots=lots_actifs, totaux=totaux,
+        "ponte.html", entrees=entrees, lots=lots_pondeurs, totaux=totaux,
         date_debut=date_debut, date_fin=date_fin, lot_filtre=lot_filtre,
-        stock_oeufs=stock_oeufs_actuel(),
+        stock_oeufs=stock_oeufs_actuel(), taille_plateau=SuiviPonte.TAILLE_PLATEAU,
     )
 
 

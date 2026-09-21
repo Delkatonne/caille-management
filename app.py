@@ -60,7 +60,10 @@ def _seed_categories_si_vide():
     librement depuis l'interface (page Catégories d'élevage)."""
     from models import CategorieElevage
     if CategorieElevage.query.count() == 0:
-        db.session.add(CategorieElevage(nom="Aviculture", description="Élevage d'oiseaux (cailles, poules, canards...)"))
+        db.session.add(CategorieElevage(
+            nom="Aviculture", description="Élevage d'oiseaux (cailles, poules, canards...)",
+            produit_des_oeufs=True,
+        ))
         db.session.commit()
 
 

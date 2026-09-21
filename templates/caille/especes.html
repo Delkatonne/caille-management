@@ -17,7 +17,7 @@ catégorie d'élevage. Une fois ajoutée, l'espèce est disponible dans le formu
 <div class="card">
   <div class="card-body p-0">
     <table class="table mb-0 align-middle">
-      <thead><tr><th>Nom</th><th>Catégorie</th><th>Description</th><th>Nombre de lots</th></tr></thead>
+      <thead><tr><th>Nom</th><th>Catégorie</th><th>Description</th><th>Nombre de lots</th><th></th></tr></thead>
       <tbody>
       {% for e in especes %}
         <tr>
@@ -25,9 +25,10 @@ catégorie d'élevage. Une fois ajoutée, l'espèce est disponible dans le formu
           <td>{% if e.categorie %}<span class="badge bg-secondary">{{ e.categorie.nom }}</span>{% else %}—{% endif %}</td>
           <td>{{ e.description or '' }}</td>
           <td>{{ e.lots.count() }}</td>
+          <td class="text-end"><a href="{{ url_for('caille.detail_espece', espece_id=e.id) }}" class="btn btn-sm btn-outline-primary">Gérer</a></td>
         </tr>
       {% else %}
-        <tr><td colspan="4" class="text-center text-muted py-4">Aucune espèce enregistrée.</td></tr>
+        <tr><td colspan="5" class="text-center text-muted py-4">Aucune espèce enregistrée.</td></tr>
       {% endfor %}
       </tbody>
     </table>

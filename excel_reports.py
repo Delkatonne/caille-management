@@ -52,9 +52,11 @@ def _vers_bytes(wb):
 def excel_ponte(entrees, totaux):
     wb, ws = _nouveau_classeur("Ponte")
     lignes = [[e.date_jour, e.lot.nom, e.oeufs_pondus, e.oeufs_vendus, e.prix_unitaire_vente,
+               e.plateaux_vendus, e.prix_plateau_vente,
                e.montant_vente, e.oeufs_casses, e.oeufs_autoconsommes] for e in entrees]
-    total = ["", "TOTAL", totaux["pondus"], totaux["vendus"], "", totaux["revenu"], totaux["casses"], ""]
-    _remplir_feuille(ws, ["Date", "Lot", "Pondus", "Vendus", "Prix/u (F)", "Montant (F)", "Cassés", "Autoconso."], lignes, total)
+    total = ["", "TOTAL", totaux["pondus"], totaux["vendus"], "", "", "", totaux["revenu"], totaux["casses"], ""]
+    _remplir_feuille(ws, ["Date", "Lot", "Pondus", "Vendus (u)", "Prix/u (F)", "Plateaux",
+                           "Prix/plateau (F)", "Montant (F)", "Cassés", "Autoconso."], lignes, total)
     return _vers_bytes(wb)
 
 

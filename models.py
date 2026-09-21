@@ -42,6 +42,9 @@ class CategorieElevage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nom = db.Column(db.String(80), nullable=False, unique=True)
     description = db.Column(db.Text, nullable=True)
+    produit_des_oeufs = db.Column(db.Boolean, nullable=False, default=False)
+    # Détermine si la page « Ponte & ventes d'œufs » s'applique aux espèces
+    # de cette catégorie (coché par défaut pour Aviculture).
 
     especes = db.relationship("Espece", backref="categorie", lazy="dynamic")
 
@@ -109,8 +112,9 @@ class Lot(db.Model):
 
     @property
     def total_oeufs_vendus(self):
-        return db.session.query(db.func.coalesce(db.func.sum(SuiviPonte.oeufs_vendus), 0)) \
-            .filter(SuiviPonte.lot_id == self.id).scalar()
+        """Total vendu (unités + plateaux convertis en unités)."""
+        rows = SuiviPonte.query.filter_by(lot_id=self.id).all()
+        return sum(r.oeufs_vendus_total for r in rows)
 
     @property
     def total_revenu_oeufs(self):
@@ -166,24 +170,36 @@ class SuiviPonte(db.Model):
     __tablename__ = "caille_suivi_ponte"
     __table_args__ = (db.UniqueConstraint("lot_id", "date_jour", name="uq_ponte_lot_date"),)
 
+    TAILLE_PLATEAU = 30  # œufs par plateau (standard courant)
+
     id = db.Column(db.Integer, primary_key=True)
     lot_id = db.Column(db.Integer, db.ForeignKey("caille_lots.id"), nullable=False)
     date_jour = db.Column(db.Date, nullable=False, default=date.today)
     oeufs_pondus = db.Column(db.Integer, nullable=False, default=0)
-    oeufs_vendus = db.Column(db.Integer, nullable=False, default=0)
-    prix_unitaire_vente = db.Column(db.Float, nullable=False, default=0)
+    oeufs_vendus = db.Column(db.Integer, nullable=False, default=0)          # vendus à l'unité (hors plateaux)
+    prix_unitaire_vente = db.Column(db.Float, nullable=False, default=0)     # prix par œuf
+    plateaux_vendus = db.Column(db.Integer, nullable=False, default=0)       # vendus par plateau
+    prix_plateau_vente = db.Column(db.Float, nullable=False, default=0)      # prix par plateau
     oeufs_casses = db.Column(db.Integer, nullable=False, default=0)
     oeufs_autoconsommes = db.Column(db.Integer, nullable=False, default=0)
     notes = db.Column(db.Text, nullable=True)
 
     @property
+    def oeufs_vendus_total(self):
+        """Total d'œufs vendus ce jour, plateaux convertis en unités."""
+        return (self.oeufs_vendus or 0) + (self.plateaux_vendus or 0) * self.TAILLE_PLATEAU
+
+    @property
     def montant_vente(self):
-        return round((self.oeufs_vendus or 0) * (self.prix_unitaire_vente or 0), 2)
+        return round(
+            (self.oeufs_vendus or 0) * (self.prix_unitaire_vente or 0)
+            + (self.plateaux_vendus or 0) * (self.prix_plateau_vente or 0), 2
+        )
 
     @property
     def solde_jour(self):
         """Œufs du jour non vendus/cassés/autoconsommés -> vont au stock."""
-        return (self.oeufs_pondus or 0) - (self.oeufs_vendus or 0) \
+        return (self.oeufs_pondus or 0) - self.oeufs_vendus_total \
             - (self.oeufs_casses or 0) - (self.oeufs_autoconsommes or 0)
 
 

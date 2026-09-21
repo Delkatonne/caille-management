@@ -52,13 +52,14 @@ def rapport_ponte(entrees, date_debut, date_fin, totaux):
         styles["Normal"]))
     elements.append(Spacer(1, 0.4 * cm))
 
-    data = [["Date", "Lot", "Pondus", "Vendus", "Prix/u (F)", "Montant (F)", "Cassés", "Autoconso."]]
+    data = [["Date", "Lot", "Pondus", "Vendus (u)", "Prix/u (F)", "Plateaux", "Prix/plateau (F)", "Montant (F)", "Cassés", "Autoconso."]]
     for e in entrees:
         data.append([
             e.date_jour.strftime("%d/%m/%Y"), e.lot.nom, e.oeufs_pondus, e.oeufs_vendus,
-            e.prix_unitaire_vente, e.montant_vente, e.oeufs_casses, e.oeufs_autoconsommes,
+            e.prix_unitaire_vente, e.plateaux_vendus, e.prix_plateau_vente,
+            e.montant_vente, e.oeufs_casses, e.oeufs_autoconsommes,
         ])
-    data.append(["", "TOTAL", totaux["pondus"], totaux["vendus"], "", totaux["revenu"], totaux["casses"], ""])
+    data.append(["", "TOTAL", totaux["pondus"], totaux["vendus"], "", "", "", totaux["revenu"], totaux["casses"], ""])
 
     if len(data) == 2:
         elements.append(Paragraph("Aucune donnée sur cette période.", styles["Normal"]))
