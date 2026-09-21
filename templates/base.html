@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Gestion Ferme{% endblock %} — HITNA</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+{# Lien de menu : `also` = autres endpoints pour lesquels le lien reste actif (ex. pages de détail) #}
+{# Le lien n'est affiché que si le rôle de l'utilisateur donne accès à la page #}
+{% macro nav(endpoint, icon, label, also=[]) -%}
+{% if peut_acceder(endpoint) -%}
+<a href="{{ url_for(endpoint) }}" class="{{ 'active' if request.endpoint == endpoint or request.endpoint in also }}">
+        <i class="bi bi-{{ icon }}"></i> {{ label }}
+      </a>
+{%- endif %}
+{%- endmacro %}
+
+<!-- Barre mobile avec bouton hamburger (visible uniquement en dessous de 768px) -->
+<div class="mobile-topbar d-md-none">
+  <button class="btn-hamburger" type="button" data-bs-toggle="offcanvas" data-bs-target="#cailleSidebar" aria-controls="cailleSidebar" aria-label="Ouvrir le menu">
+    <i class="bi bi-list"></i>
+  </button>
+  <span class="mobile-topbar-title"><img src="{{ url_for('static', filename='img/logo-hitna.jpg') }}" alt=""> HITNA <span>Ferme</span></span>
+</div>
+
+<div class="d-flex">
+  <!-- Sidebar : offcanvas-md = repliée en tiroir sous 768px, fixe/visible au-dessus -->
+  <nav class="offcanvas-md offcanvas-start caille-sidebar" tabindex="-1" id="cailleSidebar" aria-labelledby="cailleSidebarLabel">
+    <div class="offcanvas-header d-md-none">
+      <span class="sidebar-brand-mobile" id="cailleSidebarLabel">
+        <img src="{{ url_for('static', filename='img/logo-hitna.jpg') }}" alt=""> HITNA <span>Ferme</span>
+      </span>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#cailleSidebar" aria-label="Fermer"></button>
+    </div>
+
+    <div class="offcanvas-body p-0 d-flex flex-column">
+      <div class="sidebar-brand d-none d-md-block">
+        <img src="{{ url_for('static', filename='img/logo-hitna.jpg') }}" alt=""> HITNA <span>Ferme</span>
+      </div>
+
+      {{ nav('dashboard.dashboard', 'speedometer2', 'Tableau de bord') }}
+
+      <div class="sidebar-group">Production</div>
+      {{ nav('production.lots', 'grid-3x3-gap', 'Lots', ['production.detail_lot']) }}
+      {{ nav('production.especes', 'collection', "Espèces / Types d'élevage", ['production.detail_espece']) }}
+      {{ nav('production.categories_elevage', 'diagram-3', "Catégories d'élevage") }}
+      {{ nav('production.ponte', 'egg', "Ponte & ventes d'œufs") }}
+      {{ nav('production.mortalite', 'exclamation-triangle', 'Mortalité') }}
+      {{ nav('production.naissances', 'flower1', 'Naissances') }}
+      {{ nav('production.croissance', 'graph-up-arrow', 'Croissance / Poids') }}
+      {{ nav('production.sante', 'heart-pulse', 'Santé') }}
+      {{ nav('production.archive', 'archive', 'Archive') }}
+
+      <div class="sidebar-group">Stocks</div>
+      {{ nav('stocks.types_provende', 'tags', "Types d'alimentation") }}
+      {{ nav('stocks.achats_provende', 'cart-plus', 'Achats / réappro.') }}
+      {{ nav('stocks.consommation_provende', 'basket', 'Consommation') }}
+
+      {% if peut('gerant') %}
+      <div class="sidebar-group">Finances</div>
+      {{ nav('finances.fournisseurs', 'truck', 'Fournisseurs') }}
+      {{ nav('finances.clients', 'person-lines-fill', 'Clients') }}
+      {{ nav('finances.ventes', 'receipt', 'Ventes') }}
+      {{ nav('finances.depenses', 'wallet2', 'Dépenses') }}
+      {{ nav('finances.rentabilite', 'cash-coin', 'Rentabilité') }}
+      {% endif %}
+
+      <div class="sidebar-group">Personnel</div>
+      {{ nav('personnel.personnel', 'people', 'Personnel') }}
+      {{ nav('personnel.taches', 'clipboard-check', 'Cahier de charges') }}
+
+      {% if peut('gerant') %}
+      <div class="sidebar-group">Pilotage</div>
+      {{ nav('dashboard.statistiques', 'graph-up', 'Statistiques') }}
+      {{ nav('dashboard.rapports', 'file-earmark-pdf', 'Rapports') }}
+      {% endif %}
+
+      {% if peut('proprietaire') %}
+      <div class="sidebar-group">Administration</div>
+      {{ nav('auth.utilisateurs', 'shield-lock', 'Utilisateurs & rôles') }}
+      {% endif %}
+
+      {% if current_user.is_authenticated %}
+      <div class="sidebar-group">Compte</div>
+      <div class="px-3 small" style="color:#c9b896;">{{ current_user.username }} · {{ libelles_roles.get(current_user.role, current_user.role) }}</div>
+      {{ nav('auth.changer_mot_de_passe', 'key', 'Changer le mot de passe') }}
+      <a href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i> Déconnexion</a>
+      {% endif %}
+
+      <div class="flex-grow-1"></div>
+    </div>
+  </nav>
+
+  <main class="caille-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <h3 class="mb-0">{% block page_title %}{% endblock %}</h3>
+      {% block page_actions %}{% endblock %}
+    </div>
+
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,21 +1,27 @@
 """
-app.py — Application Flask du module "caille" pour HITNA.
+app.py — Application Flask « HITNA Ferme » (gestion d'une ferme).
 
 Lancement rapide (SQLite local, aucune config nécessaire) :
     pip install -r requirements.txt
     python app.py
-Puis ouvrez http://127.0.0.1:5000/caille/
+Puis ouvrez http://127.0.0.1:5000/
 
 Identifiant par défaut au premier lancement : admin / changeme123
 (à changer via les variables d'environnement ADMIN_USERNAME / ADMIN_PASSWORD
 avant le tout premier démarrage, ou en modifiant le mot de passe ensuite).
+
+Architecture : voir README.md (un blueprint par bloc fonctionnel dans blueprints/).
 """
 import os
-from flask import Flask, redirect, url_for
 
+from flask import Flask, abort, redirect, render_template, request
+from flask_login import current_user
+
+import permissions
+import schema_updates
 from extensions import db, login_manager
-from routes.caille import caille_bp
-from routes.auth import auth_bp
+from blueprints import register_blueprints
+from seeds import seed_all
 
 
 def create_app():
@@ -30,84 +36,51 @@ def create_app():
 
     db.init_app(app)
     login_manager.init_app(app)
+    register_blueprints(app)
 
-    app.register_blueprint(caille_bp)
-    app.register_blueprint(auth_bp)
+    permissions.verifier_regles(app)
 
-    @app.route("/")
-    def index():
-        return redirect(url_for("caille.dashboard"))
+    @app.before_request
+    def controler_acces():
+        """Connexion obligatoire (sauf pages publiques), puis contrôle du rôle (permissions.py)."""
+        endpoint = request.endpoint
+        if endpoint is None or endpoint == "static" or endpoint in permissions.ENDPOINTS_PUBLICS:
+            return None
+        if not current_user.is_authenticated:
+            return login_manager.unauthorized()
+        if not permissions.autorise(current_user, endpoint, request.method):
+            abort(403)
+
+    @app.context_processor
+    def outils_permissions():
+        """Fonctions utilisables dans les templates pour masquer ce que le rôle ne permet pas."""
+        def peut(role_minimum):
+            return current_user.is_authenticated and permissions.niveau(current_user.role) >= permissions.niveau(role_minimum)
+
+        def peut_acceder(endpoint, methode="GET"):
+            return current_user.is_authenticated and permissions.autorise(current_user, endpoint, methode)
+
+        return {"peut": peut, "peut_acceder": peut_acceder, "libelles_roles": permissions.LIBELLES}
+
+    @app.errorhandler(403)
+    def acces_refuse(_erreur):
+        return render_template("errors/403.html"), 403
+
+    @app.route("/caille/", defaults={"chemin": ""})
+    @app.route("/caille/<path:chemin>")
+    def ancienne_url(chemin):
+        """Anciennes adresses (/caille/...) : redirigées vers les nouvelles (sans préfixe)."""
+        cible = "/" + chemin.lstrip("/")
+        if request.query_string:
+            cible += "?" + request.query_string.decode()
+        return redirect(cible, code=301)
 
     with app.app_context():
         db.create_all()
-        _seed_categories_si_vide()
-        _seed_especes_si_vide()
-        _seed_types_provende_si_vide()
-        _seed_admin_si_vide()
+        schema_updates.appliquer()
+        seed_all()
 
     return app
-
-
-@login_manager.user_loader
-def load_user(user_id):
-    from models import User
-    return User.query.get(int(user_id))
-
-
-def _seed_categories_si_vide():
-    """Crée la catégorie « Aviculture » par défaut si aucune n'existe encore.
-    D'autres catégories (Cuniculture, Porciculture, ...) peuvent être ajoutées
-    librement depuis l'interface (page Catégories d'élevage)."""
-    from models import CategorieElevage
-    if CategorieElevage.query.count() == 0:
-        db.session.add(CategorieElevage(
-            nom="Aviculture", description="Élevage d'oiseaux (cailles, poules, canards...)",
-            produit_des_oeufs=True,
-        ))
-        db.session.commit()
-
-
-def _seed_especes_si_vide():
-    """Crée l'espèce « Caille » par défaut si aucune n'existe encore.
-    D'autres espèces (Poule, Lapin, ...) peuvent être ajoutées depuis
-    l'interface (page Espèces / Types d'élevage)."""
-    from models import Espece, CategorieElevage
-    if Espece.query.count() == 0:
-        aviculture = CategorieElevage.query.filter_by(nom="Aviculture").first()
-        db.session.add(Espece(
-            nom="Caille", description="Élevage de cailles (ponte / chair)",
-            categorie_id=aviculture.id if aviculture else None,
-        ))
-        db.session.commit()
-
-
-def _seed_types_provende_si_vide():
-    """Pré-remplit les 3 types de provende classiques si la table est vide."""
-    from models import TypeProvende
-    if TypeProvende.query.count() == 0:
-        defaults = [
-            TypeProvende(nom="Démarrage", description="0 à 3 semaines, riche en protéines (~28%)", seuil_alerte_kg=15),
-            TypeProvende(nom="Croissance", description="3 à 6 semaines (~22% protéines)", seuil_alerte_kg=15),
-            TypeProvende(nom="Ponte", description="Dès l'entrée en ponte, avec calcium (~20% protéines)", seuil_alerte_kg=20),
-        ]
-        db.session.add_all(defaults)
-        db.session.commit()
-
-
-def _seed_admin_si_vide():
-    """Crée un premier compte administrateur si aucun utilisateur n'existe.
-
-    Identifiants configurables via les variables d'environnement
-    ADMIN_USERNAME / ADMIN_PASSWORD. À défaut : admin / changeme123
-    (à changer immédiatement après le premier déploiement)."""
-    from models import User
-    if User.query.count() == 0:
-        username = os.environ.get("ADMIN_USERNAME", "admin")
-        password = os.environ.get("ADMIN_PASSWORD", "changeme123")
-        user = User(username=username)
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
 
 
 app = create_app()

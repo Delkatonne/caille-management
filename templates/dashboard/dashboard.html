@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord{% endblock %}
+{% block page_title %}Tableau de bord — {{ today.strftime('%d/%m/%Y') }}{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-value">{{ effectif_total }}</div>
+      <div class="kpi-label">Animaux en élevage ({{ nb_lots_actifs }} lot(s) actif(s))</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-value">{{ oeufs_pondus_jour }}</div>
+      <div class="kpi-label">Œufs pondus aujourd'hui</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-value">{{ oeufs_vendus_jour }}</div>
+      <div class="kpi-label">Œufs vendus aujourd'hui{% if peut('gerant') %} ({{ revenu_jour }} F){% endif %}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-value">{{ stock_oeufs }}</div>
+      <div class="kpi-label">Stock d'œufs disponible</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card {{ 'alerte' if (cailles_mortes_jour + cailletons_morts_jour) > 0 }}">
+      <div class="kpi-value">{{ cailles_mortes_jour }} / {{ cailletons_morts_jour }}</div>
+      <div class="kpi-label">Morts aujourd'hui (adultes / jeunes)</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-basket"></i> Stock d'alimentation</span>
+        {% if peut('gerant') %}<a href="{{ url_for('stocks.achats_provende') }}" class="btn btn-sm btn-outline-primary">Enregistrer un achat</a>{% endif %}
+      </div>
+      <div class="card-body p-0">
+        <table class="table mb-0">
+          <thead><tr><th>Type</th><th>Stock (kg)</th><th>Seuil alerte</th><th></th></tr></thead>
+          <tbody>
+          {% for t in types_provende %}
+            <tr class="{{ 'table-danger' if t.en_alerte }}">
+              <td>{{ t.nom }}</td>
+              <td>{{ t.stock_actuel_kg }}</td>
+              <td>{{ t.seuil_alerte_kg }}</td>
+              <td>{% if t.en_alerte %}<span class="badge bg-danger">Réapprovisionner</span>{% else %}<span class="badge bg-success">OK</span>{% endif %}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4" class="text-center text-muted py-3">Aucun type d'alimentation défini.{% if peut('gerant') %} <a href="{{ url_for('stocks.types_provende') }}">En ajouter un</a>.{% endif %}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-clipboard-check"></i> Cahier de charges — tâches à venir</div>
+      <div class="card-body p-0">
+        <table class="table mb-0">
+          <thead><tr><th>Tâche</th><th>Catégorie</th><th>Prévue le</th></tr></thead>
+          <tbody>
+          {% for t in taches_a_faire %}
+            <tr>
+              <td>{{ t.titre }}</td>
+              <td><span class="badge badge-categorie-{{ t.categorie }}">{{ t.categorie }}</span></td>
+              <td>{{ t.date_prevue.strftime('%d/%m/%Y') if t.date_prevue else '—' }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="3" class="text-center text-muted py-3">Aucune tâche en attente.{% if peut('gerant') %} <a href="{{ url_for('personnel.taches') }}">Ajouter une tâche</a>.{% endif %}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="card-footer text-end">
+        <a href="{{ url_for('personnel.taches') }}" class="btn btn-sm btn-outline-secondary">Voir le cahier de charges complet</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if alertes_provende %}
+<div class="alert alert-warning mt-4">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  <strong>Réapprovisionnement nécessaire :</strong>
+  {% for t in alertes_provende %}{{ t.nom }} ({{ t.stock_actuel_kg }} kg restant){{ ", " if not loop.last }}{% endfor %}
+</div>
+{% endif %}
+{% endblock %}

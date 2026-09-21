@@ -1,5 +1,5 @@
 """
-models.py — Module "Gestion de caille" pour HITNA
+models.py — Modèles de données de la ferme HITNA
 ====================================================
 Toutes les tables sont préfixées `caille_` pour ne jamais entrer en conflit
 avec les tables existantes de l'application HITNA.
@@ -13,6 +13,7 @@ from datetime import date
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from extensions import db
+from permissions import LIBELLES, niveau
 
 
 # ---------------------------------------------------------------------------
@@ -24,6 +25,22 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
+    # Rôle : "employe" < "gerant" < "proprietaire" (voir permissions.py)
+    role = db.Column(db.String(20), nullable=False, default="employe")
+    # Compte désactivé = ne peut plus se connecter (l'historique est conservé)
+    actif = db.Column(db.Boolean, nullable=False, default=True)
+
+    @property
+    def is_active(self):
+        # Flask-Login : un compte inactif est déconnecté immédiatement
+        return bool(self.actif)
+
+    @property
+    def role_libelle(self):
+        return LIBELLES.get(self.role, self.role)
+
+    def a_role(self, minimum):
+        return niveau(self.role) >= niveau(minimum)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -382,6 +399,14 @@ class Employe(db.Model):
 # ---------------------------------------------------------------------------
 # SUIVI SANITAIRE (vaccinations, traitements, maladies)
 # ---------------------------------------------------------------------------
+TYPES_SOIN = {
+    "vaccination": "Vaccination",
+    "traitement": "Traitement",
+    "maladie": "Maladie / diagnostic",
+    "visite_veterinaire": "Visite vétérinaire",
+}
+
+
 class SoinSante(db.Model):
     """Carnet de santé structuré par lot — distinct du cahier de charges
     (Tache), qui sert à planifier plutôt qu'à tracer un historique clinique."""

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Accès refusé{% endblock %}
+{% block page_title %}Accès refusé{% endblock %}
+
+{% block content %}
+<div class="alert alert-warning">
+  <i class="bi bi-shield-lock"></i>
+  Votre rôle ({{ libelles_roles.get(current_user.role, current_user.role) }}) ne permet pas d'accéder à cette page.
+  Si vous en avez besoin, demandez au propriétaire de modifier votre rôle.
+</div>
+<a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-primary"><i class="bi bi-arrow-left"></i> Retour au tableau de bord</a>
+{% endblock %}

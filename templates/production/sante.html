@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Santé{% endblock %}
+{% block page_title %}Carnet de santé{% endblock %}
+{% block page_actions %}
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalSoin"><i class="bi bi-plus-lg"></i> Nouveau soin</button>
+{% endblock %}
+
+{% block content %}
+<form class="row g-2 mb-3 align-items-end" method="get">
+  <div class="col-auto"><label class="form-label mb-0">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+  <div class="col-auto"><label class="form-label mb-0">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+  <div class="col-auto"><button class="btn btn-sm btn-outline-secondary">Filtrer</button></div>
+</form>
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>Date</th><th>Lot</th><th>Type</th><th>Produit</th><th>Réalisé par</th><th>Notes</th><th></th></tr></thead>
+      <tbody>
+      {% for s in entrees %}
+        <tr>
+          <td>{{ s.date_soin.strftime('%d/%m/%Y') }}</td>
+          <td>{{ s.lot.nom }}</td>
+          <td>
+            {% if s.type_soin == 'maladie' %}<span class="badge bg-danger">{{ types_soin.get(s.type_soin, s.type_soin) }}</span>
+            {% elif s.type_soin == 'vaccination' %}<span class="badge bg-success">{{ types_soin.get(s.type_soin, s.type_soin) }}</span>
+            {% else %}<span class="badge bg-secondary">{{ types_soin.get(s.type_soin, s.type_soin) }}</span>{% endif %}
+          </td>
+          <td>{{ s.produit or '—' }}</td>
+          <td>{{ s.employe.nom if s.employe else '—' }}</td>
+          <td>{{ s.notes or '' }}</td>
+          <td class="text-end">
+            {% if peut('gerant') %}
+            <form action="{{ url_for('production.supprimer_soin', soin_id=s.id) }}" method="post" class="d-inline" onsubmit="return confirm('Supprimer ce soin ?');">
+              <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">Aucun soin sur cette période.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="modalSoin" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" action="{{ url_for('production.sante') }}" method="post">
+      <div class="modal-header"><h5 class="modal-title">Nouveau soin de santé</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2"><label class="form-label">Lot</label>
+          <select class="form-select" name="lot_id" required>
+            {% for l in lots %}<option value="{{ l.id }}">{{ l.nom }}</option>{% endfor %}
+          </select></div>
+        <div class="mb-2"><label class="form-label">Date</label>
+          <input type="date" class="form-control" name="date_soin" value="{{ date_fin }}" required></div>
+        <div class="mb-2"><label class="form-label">Type</label>
+          <select class="form-select" name="type_soin">
+            {% for cle, libelle in types_soin.items() %}<option value="{{ cle }}">{{ libelle }}</option>{% endfor %}
+          </select></div>
+        <div class="mb-2"><label class="form-label">Produit / vaccin utilisé</label>
+          <input class="form-control" name="produit" placeholder="Ex: Newcastle, vitamines..."></div>
+        <div class="mb-2"><label class="form-label">Réalisé par (optionnel)</label>
+          <select class="form-select" name="employe_id">
+            <option value="">—</option>
+            {% for e in employes %}<option value="{{ e.id }}">{{ e.nom }}</option>{% endfor %}
+          </select></div>
+        <div class="mb-2"><label class="form-label">Notes</label>
+          <textarea class="form-control" name="notes" rows="2"></textarea></div>
+        <div class="form-text">Le coût (si applicable) se saisit séparément dans Dépenses.</div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-primary">Enregistrer</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

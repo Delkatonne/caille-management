@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Mortalité{% endblock %}
+{% block page_title %}Suivi de la mortalité{% endblock %}
+{% block page_actions %}
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalMortalite"><i class="bi bi-plus-lg"></i> Saisir le jour</button>
+{% endblock %}
+
+{% block content %}
+<form class="row g-2 mb-3 align-items-end" method="get">
+  <div class="col-auto"><label class="form-label mb-0">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+  <div class="col-auto"><label class="form-label mb-0">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+  <div class="col-auto"><button class="btn btn-sm btn-outline-secondary">Filtrer</button></div>
+</form>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="kpi-card alerte"><div class="kpi-value">{{ totaux.cailles }}</div><div class="kpi-label">Adultes morts (période)</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi-card alerte"><div class="kpi-value">{{ totaux.cailletons }}</div><div class="kpi-label">Jeunes morts (période)</div></div></div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>Date</th><th>Lot</th><th>Adultes morts</th><th>Jeunes morts</th><th>Cause</th><th>Notes</th></tr></thead>
+      <tbody>
+      {% for e in entrees %}
+        <tr>
+          <td>{{ e.date_jour.strftime('%d/%m/%Y') }}</td>
+          <td>{{ e.lot.nom }}</td>
+          <td>{{ e.cailles_mortes }}</td>
+          <td>{{ e.cailletons_morts }}</td>
+          <td>{{ e.cause or '—' }}</td>
+          <td>{{ e.notes or '' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="text-center text-muted py-4">Aucune entrée sur cette période.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="modalMortalite" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" action="{{ url_for('production.mortalite') }}" method="post">
+      <div class="modal-header"><h5 class="modal-title">Saisie journalière — mortalité</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2"><label class="form-label">Lot</label>
+          <select class="form-select" name="lot_id" required>
+            {% for l in lots %}<option value="{{ l.id }}">{{ l.nom }}</option>{% endfor %}
+          </select></div>
+        <div class="mb-2"><label class="form-label">Date</label>
+          <input type="date" class="form-control" name="date_jour" value="{{ date_fin }}" required></div>
+        <div class="row">
+          <div class="col-6 mb-2"><label class="form-label">Adultes morts</label><input type="number" min="0" class="form-control" name="cailles_mortes" value="0"></div>
+          <div class="col-6 mb-2"><label class="form-label">Jeunes morts</label><input type="number" min="0" class="form-control" name="cailletons_morts" value="0"></div>
+        </div>
+        <div class="mb-2"><label class="form-label">Cause probable</label><input class="form-control" name="cause" placeholder="Maladie, chaleur, étouffement..."></div>
+        <div class="mb-2"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="2"></textarea></div>
+        <div class="form-text">Si une entrée existe déjà pour ce lot et cette date, elle sera mise à jour.</div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-primary">Enregistrer</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

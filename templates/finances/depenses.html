@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Dépenses{% endblock %}
+{% block page_title %}Dépenses diverses{% endblock %}
+{% block page_actions %}
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalDepense"><i class="bi bi-plus-lg"></i> Nouvelle dépense</button>
+{% endblock %}
+
+{% block content %}
+<form class="row g-2 mb-3 align-items-end" method="get">
+  <div class="col-auto"><label class="form-label mb-0">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+  <div class="col-auto"><label class="form-label mb-0">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+  <div class="col-auto"><button class="btn btn-sm btn-outline-secondary">Filtrer</button></div>
+  <div class="col-auto ms-auto"><span class="badge bg-dark">Total période : {{ total }} F</span></div>
+</form>
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>Date</th><th>Catégorie</th><th>Lot</th><th>Montant (F)</th><th>Notes</th><th></th></tr></thead>
+      <tbody>
+      {% for d in entrees %}
+        <tr>
+          <td>{{ d.date_depense.strftime('%d/%m/%Y') }}</td>
+          <td>{{ d.categorie }}</td>
+          <td>{{ d.lot.nom if d.lot else '—' }}</td>
+          <td>{{ d.montant }}</td>
+          <td>{{ d.notes or '' }}</td>
+          <td class="text-end">
+            <form action="{{ url_for('finances.supprimer_depense', depense_id=d.id) }}" method="post" class="d-inline" onsubmit="return confirm('Supprimer cette dépense ?');">
+              <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="text-center text-muted py-4">Aucune dépense sur cette période.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<datalist id="categoriesDepenseSuggestions">
+  {% for c in suggestions %}<option value="{{ c }}">{% endfor %}
+</datalist>
+
+<div class="modal fade" id="modalDepense" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" action="{{ url_for('finances.depenses') }}" method="post">
+      <div class="modal-header"><h5 class="modal-title">Nouvelle dépense</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2"><label class="form-label">Date</label>
+          <input type="date" class="form-control" name="date_depense" value="{{ date_fin }}" required></div>
+        <div class="mb-2"><label class="form-label">Catégorie</label>
+          <input class="form-control" name="categorie" list="categoriesDepenseSuggestions"
+                 placeholder="Ex: Vaccination, Transport, Matériel..." required>
+          <div class="form-text">Choisissez une suggestion ou tapez librement ce dans quoi vous avez dépensé.</div>
+        </div>
+        <div class="mb-2"><label class="form-label">Montant (F)</label>
+          <input type="number" step="1" min="0" class="form-control" name="montant" required></div>
+        <div class="mb-2"><label class="form-label">Lot concerné (optionnel)</label>
+          <select class="form-select" name="lot_id">
+            <option value="">— Dépense générale —</option>
+            {% for l in lots %}<option value="{{ l.id }}">{{ l.nom }}</option>{% endfor %}
+          </select></div>
+        <div class="mb-2"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="2"></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-primary">Enregistrer</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

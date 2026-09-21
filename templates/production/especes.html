@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Espèces{% endblock %}
+{% block page_title %}Espèces / Types d'élevage{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('production.categories_elevage') }}" class="btn btn-outline-secondary btn-sm me-2"><i class="bi bi-diagram-3"></i> Catégories</a>
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEspece"><i class="bi bi-plus-lg"></i> Ajouter une espèce</button>
+{% endblock %}
+
+{% block content %}
+<p class="text-muted">Ajoutez ici d'autres sujets que vous gérez (Poule, Lapin, ...) en plus de la Caille, regroupés par
+catégorie d'élevage. Une fois ajoutée, l'espèce est disponible dans le formulaire de création d'un lot.</p>
+
+{% if not categories %}
+<div class="alert alert-warning">Aucune catégorie d'élevage définie. <a href="{{ url_for('production.categories_elevage') }}">Ajoutez-en une</a> (ex: Aviculture) avant de créer une espèce.</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>Nom</th><th>Catégorie</th><th>Description</th><th>Nombre de lots</th><th></th></tr></thead>
+      <tbody>
+      {% for e in especes %}
+        <tr>
+          <td><strong>{{ e.nom }}</strong></td>
+          <td>{% if e.categorie %}<span class="badge bg-secondary">{{ e.categorie.nom }}</span>{% else %}—{% endif %}</td>
+          <td>{{ e.description or '' }}</td>
+          <td>{{ e.lots.count() }}</td>
+          <td class="text-end"><a href="{{ url_for('production.detail_espece', espece_id=e.id) }}" class="btn btn-sm btn-outline-primary">Gérer</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="text-center text-muted py-4">Aucune espèce enregistrée.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="modalEspece" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" action="{{ url_for('production.especes') }}" method="post">
+      <div class="modal-header"><h5 class="modal-title">Nouvelle espèce / type d'élevage</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2"><label class="form-label">Nom</label>
+          <input class="form-control" name="nom" placeholder="Ex: Poule, Lapin, Porc..." required></div>
+        <div class="mb-2"><label class="form-label">Catégorie d'élevage</label>
+          <select class="form-select" name="categorie_id">
+            <option value="">—</option>
+            {% for c in categories %}<option value="{{ c.id }}">{{ c.nom }}</option>{% endfor %}
+          </select>
+          <div class="form-text">Pas la bonne catégorie ? <a href="{{ url_for('production.categories_elevage') }}">Ajoutez-la ici</a>.</div>
+        </div>
+        <div class="mb-2"><label class="form-label">Description</label>
+          <textarea class="form-control" name="description" rows="2" placeholder="Précisions sur cet élevage (optionnel)"></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-primary">Ajouter</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

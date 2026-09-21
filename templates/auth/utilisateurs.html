@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Utilisateurs & rôles{% endblock %}
+{% block page_title %}Utilisateurs &amp; rôles{% endblock %}
+{% block page_actions %}
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalUtilisateur"><i class="bi bi-person-plus"></i> Nouvel utilisateur</button>
+{% endblock %}
+
+{% block content %}
+<div class="alert alert-secondary small">
+  <strong>Employé</strong> : saisie quotidienne (ponte, mortalité, naissances, croissance, santé, consommation d'aliment) et ses tâches.<br>
+  <strong>Gérant</strong> : tout ce que fait l'employé + lots, espèces, achats, clients, ventes, dépenses, fournisseurs, personnel, statistiques, rapports.<br>
+  <strong>Propriétaire</strong> : tout, y compris la rentabilité, la suppression des ventes/dépenses et la gestion des comptes.
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>Identifiant</th><th>Rôle</th><th>Statut</th><th></th></tr></thead>
+      <tbody>
+      {% for u in utilisateurs %}
+        <tr class="{{ 'text-muted' if not u.actif }}">
+          <td>{{ u.username }}{% if u.id == current_user.id %} <span class="badge bg-info">vous</span>{% endif %}</td>
+          <td>
+            {% if u.id == current_user.id %}
+              <span class="badge bg-dark">{{ libelles[u.role] if u.role in libelles else u.role }}</span>
+            {% else %}
+            <form action="{{ url_for('auth.changer_role_utilisateur', user_id=u.id) }}" method="post" class="d-flex gap-1" style="max-width:230px;">
+              <select name="role" class="form-select form-select-sm">
+                {% for code, libelle in libelles.items() %}
+                <option value="{{ code }}" {{ 'selected' if u.role == code }}>{{ libelle }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-sm btn-outline-primary" title="Enregistrer le rôle"><i class="bi bi-check-lg"></i></button>
+            </form>
+            {% endif %}
+          </td>
+          <td>{% if u.actif %}<span class="badge bg-success">Actif</span>{% else %}<span class="badge bg-secondary">Désactivé</span>{% endif %}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalMdp{{ u.id }}" title="Réinitialiser le mot de passe"><i class="bi bi-key"></i></button>
+            {% if u.id != current_user.id %}
+            <form action="{{ url_for('auth.basculer_actif_utilisateur', user_id=u.id) }}" method="post" class="d-inline" onsubmit="return confirm('{{ 'Désactiver' if u.actif else 'Réactiver' }} ce compte ?');">
+              <button class="btn btn-sm {{ 'btn-outline-warning' if u.actif else 'btn-outline-success' }}">{{ 'Désactiver' if u.actif else 'Réactiver' }}</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+
+        <div class="modal fade" id="modalMdp{{ u.id }}" tabindex="-1">
+          <div class="modal-dialog">
+            <form class="modal-content" action="{{ url_for('auth.reinitialiser_mot_de_passe', user_id=u.id) }}" method="post">
+              <div class="modal-header"><h5 class="modal-title">Nouveau mot de passe — {{ u.username }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+              <div class="modal-body">
+                <label class="form-label">Nouveau mot de passe (6 caractères minimum)</label>
+                <input type="password" class="form-control" name="nouveau_mot_de_passe" minlength="6" required autocomplete="new-password">
+              </div>
+              <div class="modal-footer"><button class="btn btn-primary">Réinitialiser</button></div>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="modalUtilisateur" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" action="{{ url_for('auth.utilisateurs') }}" method="post">
+      <div class="modal-header"><h5 class="modal-title">Nouvel utilisateur</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2"><label class="form-label">Identifiant</label><input class="form-control" name="username" required autocomplete="off"></div>
+        <div class="mb-2"><label class="form-label">Mot de passe (6 caractères minimum)</label>
+          <input type="password" class="form-control" name="mot_de_passe" minlength="6" required autocomplete="new-password"></div>
+        <div class="mb-2"><label class="form-label">Rôle</label>
+          <select class="form-select" name="role">
+            {% for code, libelle in libelles.items() %}
+            <option value="{{ code }}" {{ 'selected' if code == 'employe' }}>{{ libelle }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-primary">Créer le compte</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

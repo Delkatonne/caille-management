@@ -1,76 +1,96 @@
-# Module « Gestion de caille » pour HITNA
+# HITNA Ferme — application de gestion de la ferme
 
-Module Flask complet pour gérer l'élevage de cailles : ponte, ventes d'œufs,
-mortalité, naissances de cailletons, provende (achats, consommation, stock,
-alertes de réapprovisionnement), fournisseurs, cahier de charges (tâches et
-protocoles), et archive des lots réformés.
+Application Flask + PostgreSQL (SQLite en local) pour gérer la ferme Hitna :
+lots d'animaux, ponte et ventes d'œufs, mortalité, naissances, croissance, santé,
+provende (achats, consommation, alertes de stock), clients, ventes, fournisseurs,
+dépenses, rentabilité, personnel, cahier de charges, statistiques et rapports PDF / Excel.
 
-## 1. Tester le module seul (avant intégration)
+Cette application est **indépendante** de l'application de gestion des boutiques HITNA
+(dépôt, base de données et déploiement séparés).
+
+## Lancer en local
 
 ```bash
-cd hitna_caille
 pip install -r requirements.txt
 python app.py
 ```
 
-Ouvrez http://127.0.0.1:5000/caille/ — une base SQLite locale (`caille_test.db`)
-est créée automatiquement, avec 3 types de provende pré-remplis (Démarrage,
-Croissance, Ponte). Un compte admin est aussi créé automatiquement :
-**identifiant `admin` / mot de passe `changeme123`** (à changer via les
-variables d'environnement `ADMIN_USERNAME` / `ADMIN_PASSWORD` avant le tout
-premier démarrage — voir section 4).
+Ouvrez http://127.0.0.1:5000/ — une base SQLite locale (`caille_test.db`) est créée
+automatiquement, avec les données de départ (catégorie Aviculture, espèce Caille,
+3 types de provende) et un compte **admin / changeme123** de rôle *propriétaire* (à changer, voir plus bas).
 
-## 2. Intégrer dans l'application HITNA existante
+## Architecture
 
-### a) Copier les fichiers
-Copiez dans votre projet HITNA :
-- `models.py` → fusionnez son contenu dans votre `models.py` existant
-  (ou importez-le comme fichier séparé, ex. `models_caille.py`)
-- `routes/caille.py` → dans votre dossier `routes/`
-- `templates/caille/` → dans votre dossier `templates/`
-- `static/caille/style.css` → dans votre dossier `static/`
+Un blueprint par bloc fonctionnel, chacun avec ses routes (dans `blueprints/`) et ses
+templates (dans `templates/<blueprint>/`) :
 
-### b) Réutiliser votre objet `db` existant
-Ce module ne doit PAS créer un second objet SQLAlchemy. Dans `models.py` et
-`routes/caille.py`, remplacez :
-```python
-from extensions import db
 ```
-par l'import de l'objet `db` déjà utilisé dans votre application HITNA
-(généralement défini dans `app.py` ou `extensions.py` de HITNA). Supprimez
-alors le fichier `extensions.py` fourni ici — il n'est utile que pour les
-tests autonomes.
-
-### c) Enregistrer le blueprint
-Dans votre `app.py` principal :
-```python
-from routes.caille import caille_bp
-app.register_blueprint(caille_bp)
+hitna_ferme/
+  app.py               création de l'app, config, protection par connexion
+  extensions.py        db (SQLAlchemy) et login_manager
+  models.py            toutes les tables (préfixe caille_)
+  seeds.py             données initiales (si tables vides)
+  permissions.py       rôles et droits d'accès (qui peut voir / faire quoi)
+  schema_updates.py    ajout automatique des nouvelles colonnes aux bases déjà créées
+  utils.py             parse_date / parse_int / parse_float, XLSX_MIME
+  blueprints/
+    auth/              connexion, déconnexion, mot de passe, gestion des utilisateurs et rôles
+    dashboard/         home (tableau de bord), statistiques, rapports (PDF/Excel)
+    production/        lots (+ archive), especes (+ catégories), ponte, mortalite,
+                       naissances, croissance, sante
+    stocks/            provende (types, achats, consommation)
+    finances/          clients, ventes, fournisseurs, depenses, rentabilite
+    personnel/         employes, taches (cahier de charges)
+  services/            reports.py (PDF, reportlab), excel_reports.py (openpyxl)
+  templates/           base.html + un dossier par blueprint
+  static/              css/style.css, img/logo-hitna.jpg
 ```
 
-### d) Créer les tables
-Toutes les tables du module sont préfixées `caille_` pour ne jamais entrer
-en conflit avec vos tables existantes (produits, ventes, employés...).
-- Si HITNA utilise Flask-Migrate : `flask db migrate -m "ajout module caille"` puis `flask db upgrade`
-- Sinon, un simple `db.create_all()` dans le contexte de l'app créera les
-  nouvelles tables sans toucher aux tables existantes.
+### Rôles et droits
 
-### e) Protéger l'accès (authentification)
-Ce module a désormais sa propre authentification (`routes/auth.py`, modèle
-`User` dans `models.py`, pages `/login` et `/logout`). Si HITNA a déjà son
-propre système de connexion (Flask-Login ou autre), deux options :
-- **Le plus simple** : garder l'auth du module telle quelle (elle est
-  indépendante et ne touche à rien d'autre).
-- **Pour fusionner** : retirez `routes/auth.py`, le modèle `User`, et le
-  `@caille_bp.before_request` dans `routes/caille.py` (qui vérifie
-  `current_user.is_authenticated`), puis protégez chaque route avec le
-  `@login_required` de votre système HITNA existant.
+Trois rôles, chacun ayant les droits du rôle inférieur. Le propriétaire crée les comptes dans
+**Administration → Utilisateurs & rôles**.
 
-### f) Lien dans le menu HITNA
-Ajoutez un lien « Gestion caille » dans la navigation principale de HITNA
-pointant vers `{{ url_for('caille.dashboard') }}`.
+| | Employé | Gérant | Propriétaire |
+|---|:-:|:-:|:-:|
+| Tableau de bord (sans les chiffres d'argent pour l'employé) | ✅ | ✅ | ✅ |
+| Saisie : ponte, mortalité, naissances, croissance, santé, consommation d'aliment | ✅ | ✅ | ✅ |
+| Voir les lots, les stocks d'aliment, ses tâches et les faire avancer | ✅ | ✅ | ✅ |
+| Créer/modifier/archiver des lots, espèces et catégories | — | ✅ | ✅ |
+| Achats d'aliment, types d'alimentation | — | ✅ | ✅ |
+| Clients, ventes, dépenses, fournisseurs | — | ✅ | ✅ |
+| Personnel, création de tâches | — | ✅ | ✅ |
+| Statistiques et rapports PDF / Excel | — | ✅ | ✅ |
+| Supprimer une entrée de ponte, de santé, de pesée | — | ✅ | ✅ |
+| Rentabilité, supprimer une vente ou une dépense | — | — | ✅ |
+| Gérer les comptes et les rôles | — | — | ✅ |
 
-## 3. Variables d'environnement
+- Les règles sont appliquées **côté serveur** (`permissions.py`) : masquer un bouton ne suffit pas,
+  une page interdite renvoie « Accès refusé » même si on tape son adresse.
+- Un compte **désactivé** ne peut plus se connecter (immédiatement) mais son historique est conservé.
+- Le propriétaire ne peut ni changer son propre rôle ni désactiver son propre compte.
+- Les comptes existants avant cette mise à jour deviennent automatiquement **propriétaire**
+  (les colonnes `role` et `actif` sont ajoutées au démarrage, sans perte de données).
+- Nouvelle page : elle hérite du niveau de son blueprint (`PAR_BLUEPRINT`). Pour un cas particulier,
+  ajoutez une ligne dans `PAR_ENDPOINT` (ou `PAR_ENDPOINT_ECRITURE` pour les envois de formulaire).
+  Un nom de page inexistant dans ces tables fait échouer le démarrage, pour éviter une règle ignorée.
+- Dans un template : `{% if peut('gerant') %}...{% endif %}` masque un élément aux employés.
+
+## Ajouter une fonctionnalité dans un bloc existant
+1. Créez `blueprints/<bloc>/mon_module.py` avec `from . import bp` puis vos routes `@bp.route(...)`.
+2. Ajoutez `mon_module` à la ligne `from . import ...` de `blueprints/<bloc>/__init__.py`.
+3. Créez le template dans `templates/<bloc>/` et appelez-le avec `render_template("<bloc>/mon_page.html")`.
+4. Ajoutez le lien dans `templates/base.html` avec `{{ nav('<bloc>.ma_fonction', 'icone', 'Libellé') }}`.
+
+### Ajouter un nouveau bloc
+Copiez le dossier d'un petit blueprint (ex. `personnel/`), changez le nom dans `Blueprint("nom", __name__)`,
+puis ajoutez-le dans `blueprints/__init__.py` (`register_blueprints`).
+
+### Modèles de données
+Toutes les tables sont dans `models.py` (préfixe `caille_`). Les noms de tables n'ont **pas** changé :
+aucune migration n'est nécessaire, vos données existantes restent intactes.
+
+## Variables d'environnement
 
 | Variable | Rôle | Défaut si absente |
 |---|---|---|
@@ -79,34 +99,32 @@ pointant vers `{{ url_for('caille.dashboard') }}`.
 | `ADMIN_USERNAME` | Identifiant du premier compte créé automatiquement | `admin` |
 | `ADMIN_PASSWORD` | Mot de passe du premier compte créé automatiquement | `changeme123` — **à changer** |
 
-Ces deux dernières variables ne servent qu'à la toute première création de
-compte (quand la table utilisateurs est vide). Pour ajouter d'autres
-comptes ou changer un mot de passe ensuite, il faut le faire directement en
-base ou ajouter une petite page de gestion des comptes (non incluse ici).
+`ADMIN_USERNAME` / `ADMIN_PASSWORD` ne servent qu'à la toute première création de compte
+(table utilisateurs vide). Ensuite, changez le mot de passe depuis « Changer le mot de passe ».
 
-## 4. Fonctionnalités couvertes
+## Où trouver chaque fonctionnalité
 
-| Besoin exprimé | Où le trouver |
-|---|---|
-| Œufs pondus / vendus par jour | Ponte & ventes d'œufs |
-| Cailletons (naissances) | Cailletons (naissances) |
-| Cailles et cailletons morts par jour | Mortalité |
-| Kg de provende acheté par jour/période, quel type acheter | Provende → Types + Achats |
-| Stock de provende et alerte de réapprovisionnement | Tableau de bord + Provende → Types |
-| Réapprovisionnement (fournisseurs, commandes) | Provende → Achats + Fournisseurs |
-| Cahier de charges | Cahier de charges (tâches, protocoles, récurrence, catégories) |
-| Archive | Archive (lots réformés, historique conservé) |
-| Suivi par lot / bâtiment | Lots de cailles (effectif, historique, détail) |
-| Revenu des ventes d'œufs | Calculé automatiquement (dashboard + page ponte + détail lot) |
-| Coût de la provende | Calculé automatiquement (page achats) |
-| Authentification | Page `/login`, session Flask-Login, toutes les pages du module protégées |
-| Graphique de ponte | Page Statistiques (courbe pondus/vendus + barres mortalité, filtrables par période et par lot) |
-| Export PDF | Page Rapports PDF (ponte, mortalité, achats de provende, fiche d'un lot) |
+| Besoin | Menu | Blueprint |
+|---|---|---|
+| Lots, espèces, catégories, archive | Production | `production` |
+| Œufs pondus / vendus, mortalité, naissances, croissance, santé | Production | `production` |
+| Types d'alimentation, achats, consommation, alertes de stock | Stocks | `stocks` |
+| Fournisseurs, clients, ventes, dépenses, rentabilité | Finances | `finances` |
+| Personnel, cahier de charges | Personnel | `personnel` |
+| Tableau de bord, statistiques, rapports PDF / Excel | Pilotage | `dashboard` |
 
-## 5. Idées d'évolutions possibles (non incluses ici)
+## Changements par rapport à l'ancienne version (module « caille »)
 
-- Notifications automatiques (email/SMS) quand un seuil de provende est atteint
-- Calcul automatique de l'indice de consommation (kg provende / œuf produit)
-- Rattachement des ventes d'œufs au système de vente général de HITNA si les
-  œufs sont aussi vendus via le module boutique existant
-- Page de gestion des comptes (créer/désactiver des utilisateurs depuis l'interface)
+- Le fichier `routes/caille.py` (1 300 lignes) est découpé en modules par blueprint.
+- Les adresses n'ont plus le préfixe `/caille` (ex. `/caille/lots` → `/lots`).
+  Les anciennes adresses redirigent automatiquement vers les nouvelles.
+- Le menu est regroupé par bloc : Production, Stocks, Finances, Personnel, Pilotage.
+- `static/caille/` → `static/css/` et `static/img/`.
+- `reports.py` et `excel_reports.py` → `services/`.
+- Nouveau : **rôles** propriétaire / gérant / employé (voir plus haut).
+- Sécurité : après connexion, la redirection `?next=` n'accepte plus que les adresses internes.
+- Correction : la page **Clients** plantait (template `clients.html` absent) — il a été créé.
+- Correction : la fiche d'une espèce plantait (la route cherchait `espece_detail.html`, le fichier
+  s'appelait `especes_detail.html`).
+- Correction : les adresses des rapports dans `rapports.html` étaient écrites en dur ; elles sont
+  maintenant générées par `url_for`.

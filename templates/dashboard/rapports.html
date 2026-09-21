@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+{% block title %}Rapports{% endblock %}
+{% block page_title %}Rapports (PDF &amp; Excel){% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-egg"></i> Ponte &amp; ventes d'œufs</div>
+      <div class="card-body">
+        <form method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+            <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+            <input type="date" class="form-control form-control-sm date-precise">
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('dashboard.rapport_ponte_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('dashboard.rapport_ponte_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-exclamation-triangle"></i> Mortalité</div>
+      <div class="card-body">
+        <form method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+            <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+            <input type="date" class="form-control form-control-sm date-precise">
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('dashboard.rapport_mortalite_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('dashboard.rapport_mortalite_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-cart-plus"></i> Achats d'alimentation</div>
+      <div class="card-body">
+        <form method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+            <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+            <input type="date" class="form-control form-control-sm date-precise">
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('dashboard.rapport_achats_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('dashboard.rapport_achats_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-cash-coin"></i> Dépenses diverses</div>
+      <div class="card-body">
+        <form method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+            <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+            <input type="date" class="form-control form-control-sm date-precise">
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('dashboard.rapport_depenses_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('dashboard.rapport_depenses_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-grid-3x3-gap"></i> Fiche d'un lot</div>
+      <div class="card-body">
+        <label class="form-label small">Choisir un lot</label>
+        <select class="form-select form-select-sm mb-2" id="selectLotPdf">
+          {% for l in lots %}<option value="{{ l.id }}">{{ l.nom }}{{ ' (archivé)' if l.statut=='archive' }}</option>{% endfor %}
+        </select>
+        <div class="row g-2">
+          <div class="col-6"><label class="form-label small">Du (optionnel)</label><input type="date" class="form-control form-control-sm" id="lotDebut"></div>
+          <div class="col-6"><label class="form-label small">Au (optionnel)</label><input type="date" class="form-control form-control-sm" id="lotFin"></div>
+        </div>
+        <div class="mt-2">
+          <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+          <input type="date" class="form-control form-control-sm" id="lotDatePrecise">
+        </div>
+        <div class="mt-3 d-flex gap-2">
+          <button class="btn btn-outline-primary btn-sm" onclick="ouvrirFicheLot('pdf')"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+          <button class="btn btn-outline-success btn-sm" onclick="ouvrirFicheLot('xlsx')"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+        </div>
+        <div class="form-text mt-2">Laisser les dates vides pour l'historique complet du lot.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-flower1"></i> Naissances</div>
+      <div class="card-body">
+        <form method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+            <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+            <input type="date" class="form-control form-control-sm date-precise">
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('dashboard.rapport_naissances_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('dashboard.rapport_naissances_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-basket"></i> Consommation d'alimentation</div>
+      <div class="card-body">
+        <form method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+            <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+            <input type="date" class="form-control form-control-sm date-precise">
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('dashboard.rapport_consommation_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('dashboard.rapport_consommation_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-clipboard-check"></i> Cahier de charges</div>
+      <div class="card-body">
+        <form method="get" target="_blank">
+          <label class="form-label small">Filtrer par statut</label>
+          <select class="form-select form-select-sm" name="statut">
+            <option value="tous">Toutes les tâches</option>
+            <option value="a_faire">À faire</option>
+            <option value="en_cours">En cours</option>
+            <option value="fait">Terminées</option>
+          </select>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('dashboard.rapport_taches_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('dashboard.rapport_taches_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-truck"></i> Fournisseurs</div>
+      <div class="card-body">
+        <p class="text-muted small">Liste complète des fournisseurs enregistrés.</p>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('dashboard.rapport_fournisseurs_pdf') }}" target="_blank" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+          </a>
+          <a href="{{ url_for('dashboard.rapport_fournisseurs_excel') }}" target="_blank" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-heart-pulse"></i> Carnet de santé</div>
+      <div class="card-body">
+        <form method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+            <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+            <input type="date" class="form-control form-control-sm date-precise">
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('dashboard.rapport_sante_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('dashboard.rapport_sante_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-receipt"></i> Ventes</div>
+      <div class="card-body">
+        <form method="get" target="_blank" onsubmit="return appliquerDatePrecise(this)">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label small">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+            <div class="col-6"><label class="form-label small">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted">— ou rechercher un seul jour —</label>
+            <input type="date" class="form-control form-control-sm date-precise">
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" formaction="{{ url_for('dashboard.rapport_ventes_pdf') }}"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            <button class="btn btn-outline-success btn-sm" formaction="{{ url_for('dashboard.rapport_ventes_excel') }}"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-graph-up-arrow"></i> Croissance / Poids</div>
+      <div class="card-body">
+        <label class="form-label small">Lot (optionnel)</label>
+        <select class="form-select form-select-sm mb-3" id="selectLotCroissance">
+          <option value="">Tous les lots</option>
+          {% for l in lots %}<option value="{{ l.id }}">{{ l.nom }}</option>{% endfor %}
+        </select>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-primary btn-sm" onclick="ouvrirCroissance('pdf')"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+          <button class="btn btn-outline-success btn-sm" onclick="ouvrirCroissance('xlsx')"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-people"></i> Personnel</div>
+      <div class="card-body">
+        <p class="text-muted small">Liste complète du personnel (actifs et inactifs).</p>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('dashboard.rapport_personnel_pdf') }}" target="_blank" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+          </a>
+          <a href="{{ url_for('dashboard.rapport_personnel_excel') }}" target="_blank" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-person-lines-fill"></i> Clients</div>
+      <div class="card-body">
+        <p class="text-muted small">Liste complète des clients enregistrés.</p>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('dashboard.rapport_clients_pdf') }}" target="_blank" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+          </a>
+          <a href="{{ url_for('dashboard.rapport_clients_excel') }}" target="_blank" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// URLs de base générées côté serveur (le format .pdf / .xlsx est ajouté en JS)
+const URL_FICHE_LOT = "{{ url_for('dashboard.rapport_lot_pdf', lot_id=0) }}".replace(/0\.pdf$/, '');
+const URL_CROISSANCE = "{{ url_for('dashboard.rapport_croissance_pdf') }}".replace(/\.pdf$/, '');
+
+// Si une "date précise" est renseignée dans un formulaire, elle remplace
+// à la fois le "Du" et le "Au" avant l'envoi -> rapport sur un seul jour.
+function appliquerDatePrecise(form) {
+  const datePrecise = form.querySelector('.date-precise');
+  if (datePrecise && datePrecise.value) {
+    form.querySelector('input[name="debut"]').value = datePrecise.value;
+    form.querySelector('input[name="fin"]').value = datePrecise.value;
+  }
+  return true;
+}
+
+function ouvrirFicheLot(format) {
+  const id = document.getElementById('selectLotPdf').value;
+  if (!id) return;
+  const datePrecise = document.getElementById('lotDatePrecise').value;
+  let debut = document.getElementById('lotDebut').value;
+  let fin = document.getElementById('lotFin').value;
+  if (datePrecise) { debut = datePrecise; fin = datePrecise; }
+
+  let url = `${URL_FICHE_LOT}${id}.${format}`;
+  const params = [];
+  if (debut) params.push('debut=' + debut);
+  if (fin) params.push('fin=' + fin);
+  if (params.length) url += '?' + params.join('&');
+  window.open(url, '_blank');
+}
+
+function ouvrirCroissance(format) {
+  const lotId = document.getElementById('selectLotCroissance').value;
+  let url = `${URL_CROISSANCE}.${format}`;
+  if (lotId) url += `?lot_id=${lotId}`;
+  window.open(url, '_blank');
+}
+</script>
+{% endblock %}

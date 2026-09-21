@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Ventes{% endblock %}
+{% block page_title %}Ventes{% endblock %}
+{% block page_actions %}
+<a href="{{ url_for('finances.clients') }}" class="btn btn-outline-secondary btn-sm me-2"><i class="bi bi-person-lines-fill"></i> Clients</a>
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalVente"><i class="bi bi-plus-lg"></i> Nouvelle vente</button>
+{% endblock %}
+
+{% block content %}
+<form class="row g-2 mb-3 align-items-end" method="get">
+  <div class="col-auto"><label class="form-label mb-0">Du</label><input type="date" class="form-control form-control-sm" name="debut" value="{{ date_debut }}"></div>
+  <div class="col-auto"><label class="form-label mb-0">Au</label><input type="date" class="form-control form-control-sm" name="fin" value="{{ date_fin }}"></div>
+  <div class="col-auto"><button class="btn btn-sm btn-outline-secondary">Filtrer</button></div>
+  <div class="col-auto ms-auto"><span class="badge bg-dark">Total période : {{ total }} F</span></div>
+</form>
+
+<p class="text-muted small">Carnet de ventes général (cailles vivantes, viande, sous-produits...). Les ventes d'œufs au jour
+le jour restent suivies dans la page Ponte &amp; ventes d'œufs, mais peuvent aussi être ajoutées ici si vous voulez les rattacher à un client précis.</p>
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>Date</th><th>Client</th><th>Produit</th><th>Qté</th><th>Unité</th><th>Prix/u</th><th>Montant</th><th></th></tr></thead>
+      <tbody>
+      {% for v in entrees %}
+        <tr>
+          <td>{{ v.date_vente.strftime('%d/%m/%Y') }}</td>
+          <td>{{ v.client.nom if v.client else '—' }}</td>
+          <td>{{ v.produit }}</td>
+          <td>{{ v.quantite }}</td>
+          <td>{{ v.unite }}</td>
+          <td>{{ v.prix_unitaire }}</td>
+          <td>{{ v.montant_total }}</td>
+          <td class="text-end">
+            <form action="{{ url_for('finances.supprimer_vente', vente_id=v.id) }}" method="post" class="d-inline" onsubmit="return confirm('Supprimer cette vente ?');">
+              <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8" class="text-center text-muted py-4">Aucune vente sur cette période.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="modalVente" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" action="{{ url_for('finances.ventes') }}" method="post">
+      <div class="modal-header"><h5 class="modal-title">Nouvelle vente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2"><label class="form-label">Date</label>
+          <input type="date" class="form-control" name="date_vente" value="{{ date_fin }}" required></div>
+        <div class="mb-2"><label class="form-label">Client (optionnel)</label>
+          <select class="form-select" name="client_id">
+            <option value="">—</option>
+            {% for c in clients %}<option value="{{ c.id }}">{{ c.nom }}</option>{% endfor %}
+          </select>
+          <div class="form-text">Pas encore dans la liste ? <a href="{{ url_for('finances.clients') }}">Ajoutez-le ici</a>.</div>
+        </div>
+        <div class="mb-2"><label class="form-label">Lot concerné (optionnel)</label>
+          <select class="form-select" name="lot_id">
+            <option value="">—</option>
+            {% for l in lots %}<option value="{{ l.id }}">{{ l.nom }}</option>{% endfor %}
+          </select></div>
+        <div class="mb-2"><label class="form-label">Produit</label>
+          <input class="form-control" name="produit" placeholder="Ex: Cailles vivantes, Viande de caille..." list="produitsSuggestions" required>
+          <datalist id="produitsSuggestions">
+            <option value="Cailles vivantes"><option value="Viande de caille"><option value="Œufs">
+          </datalist>
+        </div>
+        <div class="row">
+          <div class="col-6 mb-2"><label class="form-label">Quantité</label><input type="number" step="0.01" min="0" class="form-control" name="quantite" required></div>
+          <div class="col-6 mb-2"><label class="form-label">Unité</label>
+            <input class="form-control" name="unite" value="unité" list="unitesSuggestions">
+            <datalist id="unitesSuggestions"><option value="unité"><option value="kg"><option value="douzaine"></datalist>
+          </div>
+        </div>
+        <div class="mb-2"><label class="form-label">Prix unitaire (F)</label>
+          <input type="number" step="1" min="0" class="form-control" name="prix_unitaire" required></div>
+        <div class="mb-2"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="2"></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-primary">Enregistrer</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

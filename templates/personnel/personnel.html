@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Personnel{% endblock %}
+{% block page_title %}Personnel{% endblock %}
+{% block page_actions %}
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEmploye"><i class="bi bi-plus-lg"></i> Ajouter un employé</button>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>Nom</th><th>Rôle</th><th>Téléphone</th><th>Embauché le</th><th>Statut</th><th></th></tr></thead>
+      <tbody>
+      {% for e in employes %}
+        <tr class="{{ 'table-secondary' if e.statut == 'inactif' }}">
+          <td>{{ e.nom }}</td>
+          <td>{{ e.role or '—' }}</td>
+          <td>{{ e.telephone or '—' }}</td>
+          <td>{{ e.date_embauche.strftime('%d/%m/%Y') if e.date_embauche else '—' }}</td>
+          <td>
+            {% if e.statut == 'actif' %}<span class="badge bg-success">Actif</span>
+            {% else %}<span class="badge bg-secondary">Inactif</span>{% endif %}
+          </td>
+          <td class="text-end">
+            <form action="{{ url_for('personnel.changer_statut_employe', employe_id=e.id) }}" method="post" class="d-inline">
+              <button class="btn btn-sm btn-outline-secondary">{{ 'Désactiver' if e.statut == 'actif' else 'Réactiver' }}</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="text-center text-muted py-4">Aucun employé enregistré.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="modalEmploye" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" action="{{ url_for('personnel.personnel') }}" method="post">
+      <div class="modal-header"><h5 class="modal-title">Nouvel employé</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2"><label class="form-label">Nom</label>
+          <input class="form-control" name="nom" required></div>
+        <div class="mb-2"><label class="form-label">Rôle</label>
+          <input class="form-control" name="role" placeholder="Ex: Soigneur, Vétérinaire, Vendeur, Gérant..." list="rolesSuggestions">
+          <datalist id="rolesSuggestions">
+            <option value="Soigneur"><option value="Vétérinaire"><option value="Vendeur">
+            <option value="Gérant"><option value="Ouvrier">
+          </datalist>
+        </div>
+        <div class="mb-2"><label class="form-label">Téléphone</label>
+          <input class="form-control" name="telephone"></div>
+        <div class="mb-2"><label class="form-label">Date d'embauche</label>
+          <input type="date" class="form-control" name="date_embauche"></div>
+        <div class="mb-2"><label class="form-label">Notes</label>
+          <textarea class="form-control" name="notes" rows="2"></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-primary">Ajouter</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}
